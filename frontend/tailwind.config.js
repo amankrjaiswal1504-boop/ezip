@@ -26,6 +26,20 @@ export default {
           100: '#DCE6DE',
         },
       },
+      keyframes: {
+        'widget-in': {
+          '0%': { opacity: '0', transform: 'translateY(12px) scale(0.9)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'chat-in': {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'widget-in': 'widget-in 300ms ease-out both',
+        'chat-in': 'chat-in 200ms ease-out both',
+      },
       fontFamily: {
         head: ['"Space Grotesk"', 'sans-serif'],
         body: ['"Inter"', 'sans-serif'],

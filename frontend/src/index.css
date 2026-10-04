@@ -30,3 +30,11 @@ h1, h2, h3, .font-head {
 .card {
   @apply bg-white border border-steel-100 rounded-sm p-5;
 }
+
+/* Leave room under the last content so the floating chat/WhatsApp buttons never
+   cover it on phones (buttons are 56px + 16px gutter, stacked). */
+@media (max-width: 639px) {
+  body {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}

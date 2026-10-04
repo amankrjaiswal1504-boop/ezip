@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -10,11 +10,14 @@ const STEP_LABELS = ['Category', 'Items', 'Quantity', 'Estimate', 'Address', 'Da
 export default function SchedulePickup() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
 
   const [categories, setCategories] = useState([]);
   const [categoryId, setCategoryId] = useState('');
   const [items, setItems] = useState([]); // all items in category
+  const [knownItems, setKnownItems] = useState({}); // itemId -> item, across categories
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [quantities, setQuantities] = useState({}); // itemId -> qty
   const [rates, setRates] = useState([]); // rate lookup for estimate
@@ -36,10 +39,40 @@ export default function SchedulePickup() {
     });
   }, []);
 
+  function rememberItems(list) {
+    setKnownItems((prev) => ({ ...prev, ...Object.fromEntries(list.map((i) => [i._id, i])) }));
+  }
+
   useEffect(() => {
     if (!categoryId) return;
-    api.get('/scrap/items', { params: { category: categoryId } }).then((res) => setItems(res.data.data.items));
+    api.get('/scrap/items', { params: { category: categoryId } }).then((res) => {
+      setItems(res.data.data.items);
+      rememberItems(res.data.data.items);
+    });
   }, [categoryId]);
+
+  // Deep link from the chat assistant: ?items=<itemId>:<qty>,<itemId>:<qty>
+  useEffect(() => {
+    const param = searchParams.get('items');
+    if (!param) return;
+    const wanted = Object.fromEntries(
+      param
+        .split(',')
+        .map((pair) => pair.split(':'))
+        .filter(([id, qty]) => /^[a-f\d]{24}$/i.test(id) && Number(qty) > 0)
+        .map(([id, qty]) => [id, qty])
+    );
+    if (!Object.keys(wanted).length) return;
+    api.get('/scrap/items').then((res) => {
+      const matched = res.data.data.items.filter((i) => wanted[i._id]);
+      if (!matched.length) return;
+      rememberItems(matched);
+      setItems(matched);
+      setSelectedItemIds(matched.map((i) => i._id));
+      setQuantities(Object.fromEntries(matched.map((i) => [i._id, wanted[i._id]])));
+      setStep(3); // straight to the estimate
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     // fetch rates for estimate once city known (from selected address) — default city fallback
@@ -47,7 +80,8 @@ export default function SchedulePickup() {
     api.get('/scrap/rates', { params: { city } }).then((res) => setRates(res.data.data.rates));
   }, [addressId, addresses]);
 
-  const selectedItems = items.filter((i) => selectedItemIds.includes(i._id));
+  // Selections survive switching category, since they're looked up across all fetched items.
+  const selectedItems = selectedItemIds.map((id) => knownItems[id]).filter(Boolean);
 
   const estimate = useMemo(() => {
     let min = 0;
@@ -98,7 +132,9 @@ export default function SchedulePickup() {
     return (
       <div className="max-w-md mx-auto px-5 py-16 text-center">
         <p className="mb-4">Log in to schedule a pickup.</p>
-        <a href="/login" className="btn-primary">Log in</a>
+        <Link to="/login" state={{ from: location.pathname + location.search }} className="btn-primary">
+          Log in
+        </Link>
       </div>
     );
   }

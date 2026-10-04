@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './routes/ProtectedRoute';
+import FloatingWidgets from './components/FloatingWidgets';
 
 import MainLayout from './layouts/MainLayout';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -29,6 +30,7 @@ import AdminCollectors from './pages/AdminCollectors';
 import AdminPickups from './pages/AdminPickups';
 import AdminPrices from './pages/AdminPrices';
 import AdminReports from './pages/AdminReports';
+import AdminSupport from './pages/AdminSupport';
 
 const customerLinks = [
   { to: '/dashboard', label: 'Overview', end: true },
@@ -44,11 +46,12 @@ const adminLinks = [
   { to: '/admin/pickups', label: 'Pickups' },
   { to: '/admin/prices', label: 'Prices' },
   { to: '/admin/reports', label: 'Reports' },
+  { to: '/admin/support', label: 'Chat & Support' },
 ];
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <Toaster position="top-right" />
         <Routes>
@@ -119,10 +122,13 @@ export default function App() {
             <Route path="/admin/pickups" element={<AdminPickups />} />
             <Route path="/admin/prices" element={<AdminPrices />} />
             <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/support" element={<AdminSupport />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        {/* Outside the layouts so the widgets appear on every page */}
+        <FloatingWidgets />
       </AuthProvider>
     </BrowserRouter>
   );
