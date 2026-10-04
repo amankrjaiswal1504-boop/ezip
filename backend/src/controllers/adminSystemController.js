@@ -202,7 +202,7 @@ async function auditLog(req, res, next) {
   try {
     const filter = {};
     if (req.query.action) filter.action = new RegExp(`^${escapeRegex(req.query.action)}`);
-    if (req.query.actor) filter.actor = req.query.actor;
+    if (/^[a-f\d]{24}$/i.test(req.query.actor || '')) filter.actor = req.query.actor;
     const { rows, pagination } = await paginate(AuditLog, filter, req);
     res.json({ success: true, data: { entries: rows, pagination } });
   } catch (err) {

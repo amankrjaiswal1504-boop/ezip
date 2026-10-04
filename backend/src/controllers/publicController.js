@@ -45,7 +45,7 @@ async function serviceability(req, res, next) {
 async function slots(req, res, next) {
   try {
     const date = req.query.date || todayIST();
-    res.json({ success: true, data: await getAvailability(date, { pinCode: req.query.pin }) });
+    res.json({ success: true, data: await getAvailability(date, { pinCode: req.query.pin, excludePickupId: req.query.exclude }) });
   } catch (err) {
     next(err);
   }

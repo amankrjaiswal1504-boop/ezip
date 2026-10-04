@@ -116,6 +116,7 @@ async function updateStatus(req, res, next) {
     pickup.$locals.changedBy = req.user._id;
     await pickup.save();
     await pickupStatusChanged(pickup, { otp: pickup.otp, collectorName: req.user.name });
+    await pickup.populate([{ path: 'customer', select: 'name phone' }, { path: 'ngo', select: 'name' }]);
     const obj = pickup.toObject();
     delete obj.otp;
     res.json({ success: true, data: { pickup: obj } });
@@ -140,6 +141,7 @@ async function verifyDoorOtp(req, res, next) {
     pickup.$locals.changedBy = req.user._id;
     await pickup.save();
     emitTo(`pickup:${pickup.pickupId}`, 'pickup:status', { pickupId: pickup.pickupId, status: 'WEIGHING', at: new Date() });
+    await pickup.populate([{ path: 'customer', select: 'name phone' }, { path: 'ngo', select: 'name' }]);
     const obj = pickup.toObject();
     delete obj.otp;
     res.json({ success: true, data: { pickup: obj } });
@@ -187,6 +189,7 @@ async function submitWeighing(req, res, next) {
     if (!pickup) return res.status(404).json({ success: false, message: 'Pickup not found' });
     await applyWeighing(pickup, req.body.weighedItems, req.body.rateChoice);
     await pickupStatusChanged(pickup);
+    await pickup.populate([{ path: 'customer', select: 'name phone' }, { path: 'ngo', select: 'name' }]);
     res.json({ success: true, data: { pickup } });
   } catch (err) {
     if (err instanceof BookingError) return res.status(err.status).json({ success: false, message: err.message });

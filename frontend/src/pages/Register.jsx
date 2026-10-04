@@ -1,62 +1,94 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, homePathFor } from '../context/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
+import usePageMeta from '../hooks/usePageMeta';
+import AuthShell from '../components/AuthShell';
+import { Button, Field, Input } from '../components/ui';
 
 export default function Register() {
-  const { register, handleSubmit, formState: { errors } } = useForm();
-  const { register: registerUser } = useAuth();
+  const { register, user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
-  const [submitting, setSubmitting] = useState(false);
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', referralCode: params.get('ref') || '' });
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  usePageMeta({ title: t('auth.registerTitle'), noindex: true });
 
-  async function onSubmit(data) {
-    setSubmitting(true);
+  if (user) return <Navigate to={homePathFor(user)} replace />;
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  function validate() {
+    const e = {};
+    if (form.name.trim().length < 2) e.name = 'Enter your name';
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = 'Enter a valid email';
+    if (!/^[6-9]\d{9}$/.test(form.phone.replace(/[\s-]/g, '').replace(/^\+?91(?=\d{10}$)/, ''))) e.phone = 'Enter a valid 10-digit mobile number';
+    if (form.password.length < 8) e.password = 'At least 8 characters';
+    setErrors(e);
+    return !Object.keys(e).length;
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!validate()) return;
+    setBusy(true);
     try {
-      await registerUser(data);
+      const u = await register({ ...form, referralCode: form.referralCode || undefined });
       toast.success('Account created');
-      navigate('/dashboard', { replace: true });
+      navigate(location.state?.from || homePathFor(u), { replace: true });
     } catch (err) {
+      if (err.errors) setErrors(Object.fromEntries(err.errors.map((x) => [x.field, x.message])));
       toast.error(err.message);
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   }
 
   return (
-    <div className="max-w-md mx-auto px-5 py-16">
-      <h1 className="font-head text-2xl font-semibold mb-1">Create an account</h1>
-      <p className="text-steel-500 mb-6 text-sm">Book your first pickup in under a minute.</p>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label className="text-sm font-medium mb-1 block">Full name</label>
-          <input className="input" {...register('name', { required: true })} />
-          {errors.name && <p className="text-rust-600 text-xs mt-1">Name is required</p>}
+    <AuthShell
+      title={t('auth.registerTitle')}
+      subtitle="Or skip this: you can book with just your phone number."
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link to="/login" state={location.state} className="link">
+            {t('nav.login')}
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={submit} className="space-y-4" noValidate>
+        <Field label={t('auth.name')} error={errors.name} required>
+          {(id) => <Input id={id} autoComplete="name" value={form.name} onChange={(e) => set('name', e.target.value)} invalid={!!errors.name} />}
+        </Field>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label={t('auth.email')} error={errors.email} required>
+            {(id) => <Input id={id} type="email" autoComplete="email" value={form.email} onChange={(e) => set('email', e.target.value)} invalid={!!errors.email} />}
+          </Field>
+          <Field label={t('auth.phone')} error={errors.phone} required>
+            {(id) => <Input id={id} inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} invalid={!!errors.phone} />}
+          </Field>
         </div>
-        <div>
-          <label className="text-sm font-medium mb-1 block">Email</label>
-          <input className="input" type="email" {...register('email', { required: true })} />
-          {errors.email && <p className="text-rust-600 text-xs mt-1">Email is required</p>}
-        </div>
-        <div>
-          <label className="text-sm font-medium mb-1 block">Phone</label>
-          <input className="input" {...register('phone', { required: true })} />
-          {errors.phone && <p className="text-rust-600 text-xs mt-1">Phone is required</p>}
-        </div>
-        <div>
-          <label className="text-sm font-medium mb-1 block">Password</label>
-          <input className="input" type="password" {...register('password', { required: true, minLength: 6 })} />
-          {errors.password && <p className="text-rust-600 text-xs mt-1">Minimum 6 characters</p>}
-        </div>
-        <button className="btn-primary w-full" disabled={submitting}>
-          {submitting ? 'Creating account…' : 'Create account'}
-        </button>
+        <Field label={t('auth.password')} error={errors.password} hint="At least 8 characters" required>
+          {(id) => <Input id={id} type="password" autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} invalid={!!errors.password} />}
+        </Field>
+        <Field label={t('auth.referral')} error={errors.referralCode}>
+          {(id) => <Input id={id} value={form.referralCode} onChange={(e) => set('referralCode', e.target.value.toUpperCase())} />}
+        </Field>
+        <Button type="submit" className="w-full" size="lg" loading={busy}>
+          {t('auth.createAccount')}
+        </Button>
+        <p className="text-xs text-steel-500">
+          By continuing you agree to our{' '}
+          <Link to="/terms" className="link">
+            terms & privacy
+          </Link>
+          .
+        </p>
       </form>
-
-      <p className="text-sm text-steel-500 mt-6">
-        Already have an account? <Link to="/login" className="text-rust-600 font-medium">Log in</Link>
-      </p>
-    </div>
+    </AuthShell>
   );
 }

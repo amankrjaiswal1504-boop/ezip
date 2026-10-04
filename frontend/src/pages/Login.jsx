@@ -1,63 +1,106 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { Mail, Smartphone } from 'lucide-react';
+import { useAuth, homePathFor } from '../context/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
+import usePageMeta from '../hooks/usePageMeta';
+import AuthShell from '../components/AuthShell';
+import PhoneOtpForm from '../components/PhoneOtpForm';
+import { Button, Field, Input, Segmented } from '../components/ui';
 
 export default function Login() {
-  const { register, handleSubmit, formState: { errors } } = useForm();
   const { login, user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
-  const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState('phone');
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  usePageMeta({ title: t('nav.login'), noindex: true });
 
-  async function onSubmit(data) {
-    setSubmitting(true);
+  const go = (u) => {
+    toast.success(`Welcome, ${u.name.split(' ')[0]}`);
+    navigate(location.state?.from || homePathFor(u), { replace: true });
+  };
+
+  if (user) return <Navigate to={location.state?.from || homePathFor(user)} replace />;
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!form.email || !form.password) return setError('Enter your email and password');
+    setBusy(true);
+    setError('');
     try {
-      const loggedInUser = await login(data.email, data.password);
-      toast.success('Logged in');
-      const dest =
-        location.state?.from ||
-        (loggedInUser.role === 'admin' ? '/admin' : loggedInUser.role === 'collector' ? '/collector' : '/dashboard');
-      navigate(dest, { replace: true });
+      go(await login(form.email, form.password));
     } catch (err) {
-      toast.error(err.message);
+      setError(err.message);
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   }
 
   return (
-    <div className="max-w-md mx-auto px-5 py-16">
-      <h1 className="font-head text-2xl font-semibold mb-1">Log in</h1>
-      <p className="text-steel-500 mb-6 text-sm">Access your ScrapMate dashboard.</p>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label className="text-sm font-medium mb-1 block">Email</label>
-          <input className="input" type="email" {...register('email', { required: true })} />
-          {errors.email && <p className="text-rust-600 text-xs mt-1">Email is required</p>}
-        </div>
-        <div>
-          <label className="text-sm font-medium mb-1 block">Password</label>
-          <input className="input" type="password" {...register('password', { required: true })} />
-          {errors.password && <p className="text-rust-600 text-xs mt-1">Password is required</p>}
-        </div>
-        <button className="btn-primary w-full" disabled={submitting}>
-          {submitting ? 'Logging in…' : 'Log in'}
-        </button>
-      </form>
-
-      <p className="text-sm text-steel-500 mt-6">
-        No account? <Link to="/register" className="text-rust-600 font-medium">Register</Link>
-      </p>
-
-      <div className="mt-8 card bg-steel-100/60 text-xs text-steel-600">
-        <div className="font-medium mb-1">Demo credentials (dev seed data)</div>
-        <div>Admin: admin@scrapmate.dev / Admin@123</div>
-        <div>Collector: collector1@scrapmate.dev / Collector@123</div>
-        <div>Customer: customer@scrapmate.dev / Customer@123</div>
-      </div>
-    </div>
+    <AuthShell
+      title={t('auth.loginTitle')}
+      subtitle={t('auth.loginSub')}
+      footer={
+        <>
+          {t('auth.noAccount')}{' '}
+          <Link to="/register" state={location.state} className="link">
+            {t('auth.createAccount')}
+          </Link>
+          <details className="mt-6 text-xs">
+            <summary className="cursor-pointer text-steel-400">Demo accounts (development)</summary>
+            <div className="mt-2 grid gap-1 text-steel-500">
+              <span>Customer: customer@scrapmate.dev / Customer@123 (or phone 9999900003)</span>
+              <span>Business: business@scrapmate.dev / Business@123</span>
+              <span>Collector: collector1@scrapmate.dev / Collector@123</span>
+              <span>Admin: admin@scrapmate.dev / Admin@123</span>
+              <span>Staff: support@ / ops@ / finance@scrapmate.dev / Staff@123</span>
+            </div>
+          </details>
+        </>
+      }
+    >
+      <Segmented
+        className="w-full mb-6 [&>button]:flex-1 [&>button]:justify-center"
+        value={mode}
+        onChange={(v) => {
+          setMode(v);
+          setError('');
+        }}
+        options={[
+          { value: 'phone', label: t('auth.withPhone'), icon: Smartphone },
+          { value: 'email', label: t('auth.withEmail'), icon: Mail },
+        ]}
+      />
+      {mode === 'phone' ? (
+        <PhoneOtpForm onVerified={go} />
+      ) : (
+        <form onSubmit={submit} className="space-y-4" noValidate>
+          <Field label={t('auth.email')}>
+            {(id) => <Input id={id} type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} autoFocus />}
+          </Field>
+          <Field label={t('auth.password')}>
+            {(id) => <Input id={id} type="password" autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}
+          </Field>
+          <div className="flex justify-end -mt-2">
+            <Link to="/forgot-password" className="text-sm link">
+              {t('auth.forgot')}
+            </Link>
+          </div>
+          {error && (
+            <p className="text-danger-600 text-sm" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" className="w-full" size="lg" loading={busy}>
+            {t('nav.login')}
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   );
 }

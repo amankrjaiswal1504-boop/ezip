@@ -35,7 +35,11 @@ async function dashboard(req, res, next) {
         { $sort: { _id: 1 } },
       ]),
       Pickup.countDocuments({
-        scheduledDate: { $gte: new Date(new Date().toISOString().slice(0, 10)), $lt: new Date(Date.now() + 86400000) },
+        scheduledDate: (() => {
+          // Pickup dates are stored as the IST calendar day at 00:00Z.
+          const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+          return { $gte: new Date(`${d}T00:00:00Z`), $lte: new Date(`${d}T23:59:59Z`) };
+        })(),
         status: { $ne: 'CANCELLED' },
       }),
       Pickup.countDocuments({ flags: { $ne: [] }, status: { $in: ACTIVE } }),
@@ -482,7 +486,7 @@ async function liveMap(req, res, next) {
       User.find({ role: 'collector', isActive: true, 'collectorProfile.location.lat': { $exists: true } })
         .select('name phone collectorProfile.location collectorProfile.isAvailable collectorProfile.city')
         .lean(),
-      Pickup.find({ status: { $in: ACTIVE }, 'location.lat': { $exists: true } })
+      Pickup.find({ status: { $in: ACTIVE }, 'location.lat': { $exists: true }, scheduledDate: { $lte: new Date(Date.now() + 86400000) } })
         .select('pickupId status location addressSnapshot.locality timeSlot collector')
         .populate('collector', 'name')
         .limit(500)
