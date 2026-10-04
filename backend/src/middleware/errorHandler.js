@@ -1,31 +1,43 @@
+const logger = require('../utils/logger');
+
 function notFound(req, res, next) {
-  res.status(404);
-  next(new Error(`Route not found: ${req.originalUrl}`));
+  const err = new Error(`Route not found: ${req.originalUrl}`);
+  err.status = 404;
+  next(err);
 }
 
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
-  const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
-
+  let status = err.status || err.statusCode || (res.statusCode !== 200 ? res.statusCode : 500);
   let message = err.message || 'Server error';
 
-  // Mongoose validation error
   if (err.name === 'ValidationError') {
+    status = 400;
     message = Object.values(err.errors).map((e) => e.message).join(', ');
   }
-  // Mongoose duplicate key
   if (err.code === 11000) {
+    status = 409;
     const field = Object.keys(err.keyValue || {})[0];
-    message = `Duplicate value for field: ${field}`;
+    message = `That ${field || 'value'} is already in use`;
   }
-  // Mongoose cast error (bad ObjectId)
   if (err.name === 'CastError') {
-    message = `Invalid ${err.path}: ${err.value}`;
+    status = 400;
+    message = `Invalid ${err.path}`;
+  }
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    status = 413;
+    message = 'File is too large (max 5 MB)';
+  }
+  if (err.type === 'entity.too.large') {
+    status = 413;
+    message = 'Request body is too large';
   }
 
-  res.status(statusCode === 200 ? 500 : statusCode).json({
+  if (status >= 500) logger.error({ err, url: req.originalUrl }, 'unhandled error');
+  const hideDetails = process.env.NODE_ENV === 'production' && status >= 500;
+  res.status(status).json({
     success: false,
-    message,
+    message: hideDetails ? 'Something went wrong. Please try again.' : message,
     stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
   });
 }

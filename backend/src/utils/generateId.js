@@ -1,22 +1,25 @@
+const crypto = require('crypto');
 const Pickup = require('../models/Pickup');
 
 async function generatePickupId() {
   const year = new Date().getFullYear();
-  const count = await Pickup.countDocuments({});
-  const seq = String(count + 1).padStart(6, '0');
-  const candidate = `SM-${year}-${seq}`;
-
-  // Guard against rare race conditions on concurrent bookings
-  const exists = await Pickup.findOne({ pickupId: candidate });
-  if (exists) {
-    const fallbackSeq = String(count + 1 + Math.floor(Math.random() * 1000)).padStart(6, '0');
-    return `SM-${year}-${fallbackSeq}`;
+  let seq = (await Pickup.countDocuments({})) + 1;
+  // Concurrent bookings can race on the count; step forward until free.
+  for (let i = 0; i < 20; i += 1) {
+    const candidate = `SM-${year}-${String(seq).padStart(6, '0')}`;
+    // eslint-disable-next-line no-await-in-loop
+    if (!(await Pickup.exists({ pickupId: candidate }))) return candidate;
+    seq += 1 + Math.floor(Math.random() * 5);
   }
-  return candidate;
+  return `SM-${year}-${String(Date.now()).slice(-6)}`;
 }
 
 function generatePaymentId() {
-  return `PAY-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  return `PAY-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 }
 
-module.exports = { generatePickupId, generatePaymentId };
+function shortId(prefix) {
+  return `${prefix}-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+}
+
+module.exports = { generatePickupId, generatePaymentId, shortId };

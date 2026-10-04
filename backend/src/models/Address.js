@@ -10,6 +10,7 @@ const addressSchema = new mongoose.Schema(
     state: { type: String, required: true },
     pinCode: { type: String, required: true },
     landmark: { type: String },
+    location: { lat: Number, lng: Number },
     addressType: { type: String, enum: ['home', 'work', 'other'], default: 'home' },
     isDefault: { type: Boolean, default: false },
   },

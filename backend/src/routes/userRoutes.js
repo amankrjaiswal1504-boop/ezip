@@ -1,10 +1,43 @@
 const express = require('express');
-const { getProfile, updateProfile } = require('../controllers/userController');
+const { getProfile, updateProfile, subscribePush, unsubscribePush } = require('../controllers/userController');
 const { protect } = require('../middleware/auth');
+const { validate, z } = require('../middleware/validate');
 
 const router = express.Router();
 
-router.get('/profile', protect, getProfile);
-router.put('/profile', protect, updateProfile);
+router.use(protect);
+router.get('/profile', getProfile);
+router.put(
+  '/profile',
+  validate(
+    z.object({
+      name: z.string().trim().min(2).max(80).optional(),
+      email: z.union([z.string().trim().toLowerCase().email(), z.literal('')]).optional(),
+      language: z.enum(['en', 'hi']).optional(),
+      accountType: z.enum(['individual', 'business']).optional(),
+      notificationPrefs: z
+        .object({ email: z.boolean(), whatsapp: z.boolean(), sms: z.boolean(), push: z.boolean() })
+        .partial()
+        .optional(),
+      business: z
+        .object({
+          companyName: z.string().trim().max(120).optional(),
+          businessType: z.string().max(20).optional(),
+          gstin: z
+            .union([z.string().trim().toUpperCase().regex(/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, 'Invalid GSTIN'), z.literal('')])
+            .optional(),
+          billingAddress: z.string().trim().max(300).optional(),
+        })
+        .optional(),
+    })
+  ),
+  updateProfile
+);
+router.post(
+  '/push/subscribe',
+  validate(z.object({ subscription: z.object({ endpoint: z.string().url(), keys: z.object({ p256dh: z.string(), auth: z.string() }) }) })),
+  subscribePush
+);
+router.post('/push/unsubscribe', validate(z.object({ endpoint: z.string() })), unsubscribePush);
 
 module.exports = router;

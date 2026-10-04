@@ -2,8 +2,9 @@ const crypto = require('crypto');
 const Pickup = require('../../models/Pickup');
 const Faq = require('../../models/Faq');
 const { fetchRates, estimateItems, listServiceCities, escapeRegex } = require('../rateService');
-const { ownershipFilter, validateSlot } = require('../pickupService');
-const { TIME_SLOTS, DEFAULT_CITY, RESCHEDULABLE_STATUSES } = require('../../config/constants');
+const { ownershipFilter } = require('../pickupService');
+const { getAvailability, assertSlotAvailable } = require('../slotService');
+const { DEFAULT_CITY, RESCHEDULABLE_STATUSES } = require('../../config/constants');
 const { resolveItemByName } = require('./catalog');
 const { escalateSession } = require('./tickets');
 
@@ -274,9 +275,9 @@ const EXECUTORS = {
   async get_time_slots(input) {
     const date = str(input.date, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'bad_date', message: 'Use YYYY-MM-DD.' };
-    const today = new Date().toISOString().split('T')[0];
-    if (date < today) return { date, slots: [], message: 'That date is in the past.' };
-    return { date, slots: TIME_SLOTS };
+    const avail = await getAvailability(date);
+    if (!avail.slots.length) return { date, slots: [], message: avail.reason };
+    return { date, slots: avail.slots.filter((s) => s.available).map((s) => s.label), closed: avail.slots.filter((s) => !s.available).map((s) => `${s.label}: ${s.reason}`) };
   },
 
   async cancel_pickup(input, ctx) {
@@ -309,8 +310,11 @@ const EXECUTORS = {
     if (!RESCHEDULABLE_STATUSES.includes(pickup.status)) {
       return { error: 'not_allowed', message: `Pickups that are ${pickup.status} can no longer be rescheduled.` };
     }
-    const invalid = validateSlot(date, slot);
-    if (invalid) return { error: 'invalid_slot', message: invalid, validSlots: TIME_SLOTS };
+    const invalid = await assertSlotAvailable(date, slot, { pinCode: pickup.pinCode, excludePickupId: pickupId });
+    if (invalid) {
+      const avail = await getAvailability(date, { pinCode: pickup.pinCode });
+      return { error: 'invalid_slot', message: invalid, validSlots: avail.slots.filter((s) => s.available).map((s) => s.label) };
+    }
     return proposeAction(ctx, 'reschedule_pickup', pickupId, { date, slot }, `Move pickup ${pickupId} to ${date}, ${slot}`);
   },
 

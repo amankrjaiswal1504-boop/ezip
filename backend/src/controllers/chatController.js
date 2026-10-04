@@ -11,6 +11,7 @@ const { detectLanguage, detectEscalation, classifyTopic, extractPickupId } = req
 const { escalateSession } = require('../services/chat/tickets');
 const { cleanString } = require('../services/chat/sanitize');
 const { cancelCustomerPickup, rescheduleCustomerPickup, PickupActionError } = require('../services/pickupService');
+const settings = require('../services/settingsService');
 
 const CHAT_COOKIE = 'scrapmate_chat';
 const MAX_MESSAGE_LENGTH = 1000;
@@ -140,28 +141,37 @@ async function buildTicketSummary(session, latestText) {
 
 // ---------- public config ----------
 
-function supportStatus() {
-  const start = Number(process.env.SUPPORT_HOURS_START ?? 9);
-  const end = Number(process.env.SUPPORT_HOURS_END ?? 20);
-  const tz = process.env.SUPPORT_TIMEZONE || 'Asia/Kolkata';
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: tz }).format(new Date()));
+// Support hours and WhatsApp number are admin-editable (Settings > support).
+async function supportStatus() {
+  const cfg = await settings.get('support');
+  const start = Number(cfg.hoursStart);
+  const end = Number(cfg.hoursEnd);
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: cfg.timezone }).format(new Date()));
   const fmt = (h) => `${((h + 11) % 12) + 1} ${h < 12 ? 'AM' : 'PM'}`;
   return {
     online: hour >= start && hour < end,
     hoursLabel: `${fmt(start)} – ${fmt(end)}`,
-    replyMinutes: Number(process.env.SUPPORT_REPLY_MINUTES || 10),
+    replyMinutes: Number(cfg.replyMinutes),
+    whatsappNumber: String(cfg.whatsappNumber || '').replace(/\D/g, '') || null,
   };
 }
 
-async function getConfig(req, res) {
-  res.json({
-    success: true,
-    data: {
-      aiMode: isAiEnabled() ? 'ai' : 'fallback',
-      whatsappNumber: (process.env.SUPPORT_WHATSAPP_NUMBER || '').replace(/\D/g, '') || null,
-      support: supportStatus(),
-    },
-  });
+async function getConfig(req, res, next) {
+  try {
+    const support = await supportStatus();
+    const ai = await settings.get('ai');
+    res.json({
+      success: true,
+      data: {
+        aiMode: isAiEnabled() && ai.enabled !== false ? 'ai' : 'fallback',
+        whatsappNumber: support.whatsappNumber,
+        greeting: ai.greeting || '',
+        support,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // ---------- history ----------
@@ -274,7 +284,7 @@ async function sendMessage(req, res, next) {
       toolCtx.cards.forEach((card) => send({ type: 'card', card }));
     } else {
       let aiWorked = false;
-      if (isAiEnabled()) {
+      if (isAiEnabled() && (await settings.get('ai')).enabled !== false) {
         try {
           const history = await ChatMessage.find({ session: session._id }).sort({ createdAt: -1 }).limit(HISTORY_FOR_MODEL);
           const result = await runClaudeTurn({
