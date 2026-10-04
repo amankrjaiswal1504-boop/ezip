@@ -81,7 +81,7 @@ function QtyStepper({ value, unit, onChange, label }) {
 }
 
 export default function SchedulePickup() {
-  const { user } = useAuth();
+  const { user, refreshMe } = useAuth();
   const { city: siteCity } = useConfig();
   const { t, tr } = useI18n();
   const navigate = useNavigate();
@@ -269,6 +269,8 @@ export default function SchedulePickup() {
   async function confirmAsGuest({ phone, code, name }) {
     const { serviceable, serviceReason, ...address } = guestAddress;
     const res = await api.post('/pickups/guest', { ...payload(), phone, code, name: name || 'ScrapMate customer', address });
+    // The API signed the guest in (cookie); load the new session.
+    await refreshMe();
     finish(res.data.data.pickup);
     toast.success(t('book.successTitle'));
   }
@@ -346,7 +348,7 @@ export default function SchedulePickup() {
         </div>
         <Progress step={step} t={t} />
 
-        <div className="grid lg:grid-cols-[1fr_20rem] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
           <div>
             {/* STEP 1: items */}
             {step === 0 && (

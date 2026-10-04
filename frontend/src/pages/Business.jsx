@@ -100,7 +100,7 @@ export default function Business() {
           <p className="text-[#c9ced3] mt-4 max-w-2xl text-lg">For kirana shops, offices, housing societies and factories. Scheduled pickups, transparent weighing, invoices and compliance paperwork, all in one place.</p>
         </div>
       </section>
-      <div className="container-page py-12 grid lg:grid-cols-[1fr_28rem] gap-10 items-start">
+      <div className="container-page py-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_28rem] gap-10 items-start">
         <div>
           <div className="grid sm:grid-cols-2 gap-4">
             {PERKS.map((p) => (

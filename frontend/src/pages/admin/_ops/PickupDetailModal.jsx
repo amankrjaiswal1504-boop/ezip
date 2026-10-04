@@ -100,7 +100,7 @@ export default function PickupDetailModal({ pickupId, onClose, onChanged }) {
       ) : !p ? (
         <SkeletonRows rows={6} />
       ) : (
-        <div className={cx('grid lg:grid-cols-[1fr_260px] gap-6 transition-opacity', loading && 'opacity-60')}>
+        <div className={cx('grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6 transition-opacity', loading && 'opacity-60')}>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <StatusBadge status={p.status} />

@@ -107,6 +107,8 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    /* Keep focused/scrolled-to elements clear of the sticky header. */
+    scroll-padding-top: 5.5rem;
   }
   body {
     @apply bg-steel-50 text-steel-900 font-body antialiased;

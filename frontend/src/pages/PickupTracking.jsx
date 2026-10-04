@@ -98,7 +98,7 @@ export default function PickupTracking() {
     return (
       <div className="container-page py-10 max-w-5xl space-y-4">
         <Skeleton className="h-10 w-72" />
-        <div className="grid lg:grid-cols-[1fr_22rem] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-6">
           <Skeleton className="h-96" />
           <Skeleton className="h-72" />
         </div>
@@ -155,7 +155,7 @@ export default function PickupTracking() {
         </Card>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_22rem] gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-6 items-start">
         <div className="space-y-6">
           {pickup.otp && isCustomer && (
             <Card className="flex items-center gap-4 bg-rust-50 border-rust-100">

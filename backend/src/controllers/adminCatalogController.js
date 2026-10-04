@@ -161,14 +161,19 @@ async function bulkPrices(req, res, next) {
     const { city, updates, percentChange, categoryId } = req.body;
     const results = [];
     if (percentChange !== undefined) {
-      const itemFilter = categoryId ? { category: categoryId } : {};
+      const itemFilter = { isActive: true, ...(categoryId ? { category: categoryId } : {}) };
       const items = await ScrapItem.find(itemFilter).select('_id name');
       const prices = await ScrapPrice.find({ city, item: { $in: items.map((i) => i._id) } });
       for (const p of prices) {
         const item = items.find((i) => String(i._id) === String(p.item));
         const f = 1 + percentChange / 100;
         // eslint-disable-next-line no-await-in-loop
-        await setPrice(req, item, { city, minPrice: Math.max(0, Math.round(p.minPrice * f * 100) / 100), maxPrice: Math.max(0, Math.round(p.maxPrice * f * 100) / 100) });
+        await setPrice(req, item, {
+          city,
+          minPrice: Math.max(0, Math.round(p.minPrice * f)),
+          maxPrice: Math.max(0, Math.round(p.maxPrice * f)),
+          recyclerPrice: p.recyclerPrice != null ? Math.max(0, Math.round(p.recyclerPrice * f)) : undefined,
+        });
         results.push(item.name);
       }
     } else {

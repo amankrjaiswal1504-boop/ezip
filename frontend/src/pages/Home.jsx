@@ -134,7 +134,7 @@ export default function Home() {
       <section className="bg-ink text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.07] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '22px 22px' }} aria-hidden />
         <div className="container-page relative py-12 sm:py-16 lg:py-20">
-          <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-10 items-center">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-[#F1DDCE]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7fd39a]" aria-hidden /> {t('home.badge', { count: cities.length || 10 })}
@@ -166,7 +166,7 @@ export default function Home() {
       </section>
 
       {/* Estimator + how it works */}
-      <section className="container-page -mt-6 sm:mt-0 sm:py-16 py-10 grid lg:grid-cols-[minmax(0,26rem)_1fr] gap-10 items-start">
+      <section className="container-page -mt-6 sm:mt-0 sm:py-16 py-10 grid grid-cols-1 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] gap-10 items-start">
         <Estimator className="relative z-10" />
         <div>
           <h2 className="font-head text-2xl sm:text-3xl font-semibold text-steel-900">{t('home.howTitle')}</h2>

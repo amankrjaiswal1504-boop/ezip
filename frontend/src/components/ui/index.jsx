@@ -318,13 +318,16 @@ export function Pagination({ pagination, onPage }) {
 export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
   const ref = useRef(null);
   const lastFocus = useRef(null);
+  // Keep the latest onClose without re-running the focus trap on every render.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return undefined;
     lastFocus.current = document.activeElement;
     const el = ref.current;
     el?.querySelector('input,select,textarea,button:not([data-close])')?.focus();
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') closeRef.current();
       if (e.key === 'Tab' && el) {
         const f = el.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
         if (!f.length) return;
@@ -346,7 +349,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
       document.body.style.overflow = '';
       lastFocus.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   const width = { sm: 'sm:max-w-md', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl', xl: 'sm:max-w-4xl' }[size];
   return createPortal(

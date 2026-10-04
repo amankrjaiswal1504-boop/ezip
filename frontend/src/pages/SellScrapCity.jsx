@@ -61,7 +61,7 @@ export default function SellScrapCity() {
   return (
     <div>
       <section className="bg-ink text-white">
-        <div className="container-page py-12 grid lg:grid-cols-[1fr_26rem] gap-10 items-center">
+        <div className="container-page py-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_26rem] gap-10 items-center">
           <div>
             {loading && !data ? (
               <Skeleton className="h-12 w-80 !bg-white/10" />
