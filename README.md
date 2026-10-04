@@ -39,11 +39,23 @@ Collector flow: see assigned pickups → update status through the day → enter
 - Admin dashboard with pickup/customer/collector/revenue stats and CSV-exportable reports
 - Saved addresses (add/edit/delete/default) for customers
 - Seed script with demo admin/collector/customer accounts and realistic starter pricing
+- **Floating widgets on every page** (bottom-right): AI chat assistant + WhatsApp contact
+- **ScrapMate Assistant** (AI chat): answers rate questions from the live price list, estimates
+  payouts, tracks the logged-in user's pickups, proposes cancel/reschedule (only executed after the
+  user presses Confirm), answers from an admin-editable FAQ, English + Hindi/Hinglish, streaming
+  replies, and hands off to a human (support ticket + WhatsApp) when asked, when the user is upset,
+  or after two unanswered messages. Without an API key it runs as a rule-based bot on the same data.
+- **WhatsApp button** with a smart prefilled message (user's name, pickup ID on pickup pages) and
+  online/offline status from configured support hours
+- **Admin "Chat & Support"**: conversations (filter escalated/unresolved, transcript, mark
+  resolved), support tickets, chat analytics (topics, repeated questions, escalation rate), FAQ editor
 
 ## 3. Tech stack
 
 **Frontend:** React 18, Vite, React Router, Tailwind CSS, Axios, React Hook Form, react-hot-toast
-**Backend:** Node.js, Express, Mongoose (MongoDB), JWT, bcryptjs, helmet, express-rate-limit
+**Backend:** Node.js, Express, Mongoose (MongoDB), JWT, bcryptjs, helmet, express-rate-limit,
+Anthropic SDK (`@anthropic-ai/sdk`) for the chat assistant
+**Testing:** Jest, Supertest, mongodb-memory-server (no local MongoDB needed for tests)
 **Database:** MongoDB
 
 ## 4. Folder structure
@@ -54,7 +66,11 @@ scrapmate/
     src/
       config/db.js
       models/            # User, Address, ScrapCategory, ScrapItem, ScrapPrice,
-                          # PriceHistory, Pickup, Payment
+                          # PriceHistory, Pickup, Payment, ChatSession, ChatMessage,
+                          # SupportTicket, Faq
+      services/           # rateService, pickupService (shared by controllers + chat)
+        chat/             # claudeAgent, tools, systemPrompt, fallbackBot, classifier,
+                          # catalog, sanitize, tickets
       middleware/         # auth, error handler, validation
       controllers/
       routes/
@@ -62,15 +78,18 @@ scrapmate/
       seed/seed.js
       app.js
       server.js
+    tests/                 # Jest + Supertest (chat fallback mode, chat AI mode with mocked SDK)
     .env.example
     package.json
   frontend/
     src/
-      components/          # Navbar, Footer
+      components/          # Navbar, Footer, FloatingWidgets, chat/ChatPanel, chat/ChatCards
+      hooks/               # useChatAssistant (streaming + fallback, history, unread)
+      utils/whatsapp.js    # wa.me link + prefilled message builder
       layouts/             # MainLayout, DashboardLayout
       pages/                # every screen listed in section 2
       context/AuthContext.jsx
-      services/api.js
+      services/api.js, services/chatApi.js
       routes/ProtectedRoute.jsx
     .env.example
     package.json
@@ -113,14 +132,47 @@ SMTP_HOST=
 SMTP_PORT=
 SMTP_USER=
 SMTP_PASS=
+
+# AI chat assistant (optional)
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-5-5
+ANTHROPIC_EFFORT=low
+ANTHROPIC_FALLBACKS=default
+CHAT_RATE_LIMIT_PER_MIN=12
+
+# Support / WhatsApp
+SUPPORT_WHATSAPP_NUMBER=
+SUPPORT_HOURS_START=9
+SUPPORT_HOURS_END=20
+SUPPORT_TIMEZONE=Asia/Kolkata
+SUPPORT_REPLY_MINUTES=10
+DEFAULT_CITY=Bengaluru
+WHATSAPP_TOKEN=
+WHATSAPP_PHONE_ID=
 ```
-The app runs fully without Cloudinary, Razorpay, or SMTP credentials — those features
+The app runs fully without Cloudinary, Razorpay, SMTP, or Anthropic credentials — those features
 fall back to mock behavior (logged to the console) when the keys are missing.
+
+| Variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Enables AI mode for the chat assistant. Server-side only, never sent to the browser. Without it the widget uses the rule-based bot. |
+| `ANTHROPIC_MODEL` | Model ID (default `claude-sonnet-5-5`). |
+| `ANTHROPIC_EFFORT` | `low` / `medium` / `high`. Chat replies are short, so `low` keeps them fast and cheap. |
+| `ANTHROPIC_FALLBACKS` | `default` enables the API's server-side refusal fallback (Claude API only). Set `off` for a platform or model that rejects it. |
+| `CHAT_RATE_LIMIT_PER_MIN` | Messages per minute per logged-in user (or per IP when anonymous). |
+| `SUPPORT_WHATSAPP_NUMBER` | Digits with country code, e.g. `919876543210`. Used when the frontend doesn't set `VITE_WHATSAPP_NUMBER`. |
+| `SUPPORT_HOURS_*`, `SUPPORT_TIMEZONE`, `SUPPORT_REPLY_MINUTES` | Drive the WhatsApp online/offline dot and the "replies in ~X min" tooltip. |
+| `DEFAULT_CITY` | City used for rates when the user has no default address. |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Reserved for outgoing WhatsApp Cloud API notifications (Phase 2). Not used yet. |
 
 **frontend/.env**
 ```
 VITE_API_URL=http://localhost:5000/api
+VITE_WHATSAPP_NUMBER=
+VITE_WHATSAPP_MESSAGE=Hi ScrapMate, I need help with scrap pickup
 ```
+If neither `VITE_WHATSAPP_NUMBER` nor `SUPPORT_WHATSAPP_NUMBER` is set, the WhatsApp button
+still works but opens WhatsApp's contact picker with the message prefilled.
 
 ## 7. MongoDB setup
 
@@ -137,7 +189,8 @@ npm run seed
 ```
 This clears existing data and creates: an admin account, two collector accounts, one demo
 customer, all scrap categories/items/prices from the spec (Normal Recyclables, E-Waste,
-Appliances, Vehicle Scrap), a saved address, and one sample pickup.
+Appliances, Vehicle Scrap), a saved address, one sample pickup, and the starter FAQs the chat
+assistant answers from. It also clears chat conversations and support tickets.
 
 ## 9. Start the backend
 
@@ -155,6 +208,24 @@ cd frontend
 npm run dev
 ```
 App runs at `http://localhost:5173`.
+
+### Run the tests
+
+```bash
+cd backend
+npm test
+```
+Tests start their own in-memory MongoDB (the first run downloads a MongoDB binary, ~100 MB).
+They cover the chat assistant: answers from real DB prices, ownership checks (including inside
+tool calls), confirm-gated cancellation, escalation to tickets, SSE streaming, prompt-injection
+sanitising, and the Claude tool loop with the SDK mocked (no API key or network needed).
+
+### Try the assistant
+
+Open any page and click the rust chat button (bottom-right). Try: "copper rate", "10 kg
+newspaper and 1 fridge" (then **Book this pickup**), "तांबे का भाव", "track my pickup" (log in
+as the demo customer first), "cancel SM-2026-000001", or "talk to a human". Then log in as admin
+and open **Chat & Support** to see the conversation and ticket.
 
 ## 11. API documentation
 
@@ -197,6 +268,15 @@ PUT    /collector/pickups/:id/status
 PUT    /collector/pickups/:id/weighing
 PUT    /collector/pickups/:id/complete
 
+CHAT (public; account tools need login)
+GET    /chat/config                   AI/fallback mode, WhatsApp number, support hours
+GET    /chat/history                  current conversation (anonymous: per browser session)
+DELETE /chat/history                  clear conversation (escalated ones are archived for support)
+POST   /chat                          { message, page?, stream? } - SSE stream by default,
+                                       JSON when stream=false
+POST   /chat/actions/:actionId        (protected) { decision: confirm|dismiss } for a proposed
+                                       cancel/reschedule
+
 PAYMENTS (protected)
 POST   /payments/create
 POST   /payments/verify
@@ -215,6 +295,16 @@ POST   /admin/scrap-items
 PUT    /admin/scrap-items/:id
 DELETE /admin/scrap-items/:id
 GET    /admin/reports?type=revenue|scrap-by-category|summary
+GET    /admin/support/conversations?filter=escalated|unresolved&page=
+GET    /admin/support/conversations/:id
+PUT    /admin/support/conversations/:id/resolve
+GET    /admin/support/tickets?status=open|in_progress|resolved|unresolved&page=
+PUT    /admin/support/tickets/:ticketId       { status?, adminNote? }
+GET    /admin/support/analytics?days=30
+GET    /admin/faqs
+POST   /admin/faqs
+PUT    /admin/faqs/:id
+DELETE /admin/faqs/:id
 ```
 
 ## 12. Demo accounts (DEVELOPMENT ONLY — created by the seed script)
@@ -260,7 +350,15 @@ GET    /admin/reports?type=revenue|scrap-by-category|summary
 - Cloudinary image upload, Google Maps/Mapbox address autocomplete, Nodemailer emails, and
   WhatsApp/SMS notifications are represented as mock/placeholder behavior (console logs)
   rather than live integrations, per the "must run locally without paid services" requirement.
-- No automated test suite yet.
+- Automated tests cover the chat assistant only (backend). The booking -> weighing -> payment flow
+  and the frontend have no tests yet.
+- Chat assistant: AI mode is tested against a mocked SDK, not the live API. Topic analytics use
+  keyword classification, so they are approximate. Support hours and the WhatsApp number come from
+  env vars; admin-editable settings arrive with the CMS controls.
+- The assistant can't create bookings itself; it links into the booking wizard with items
+  prefilled. Time slots are a fixed list until admin-configurable slots are added.
+- On phones the floating buttons sit over page content while scrolling (the page gets extra bottom
+  padding so nothing is permanently hidden).
 - Admin category management (create/edit/deactivate categories) and file/photo upload for
   collector pickup evidence are stubbed at the data-model level (fields exist) but don't yet
   have dedicated UI screens.
