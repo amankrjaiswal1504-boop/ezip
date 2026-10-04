@@ -16,7 +16,7 @@ const rupees = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFrac
 
 function CardShell({ title, children, footer }) {
   return (
-    <div className="mt-2 bg-white border border-steel-100 rounded-sm text-sm overflow-hidden">
+    <div className="mt-2 bg-surface border border-steel-100 rounded-lg text-sm overflow-hidden">
       {title && <div className="px-3 py-2 border-b border-steel-100 font-medium text-steel-900">{title}</div>}
       <div className="px-3 py-2">{children}</div>
       {footer && <div className="px-3 py-2 border-t border-steel-100 bg-steel-50">{footer}</div>}
@@ -40,7 +40,7 @@ function RatesCard({ card, onPrefill, go }) {
             <button
               type="button"
               onClick={() => onPrefill(`I have ${r.unit === 'kg' ? '10 kg' : '1'} ${r.name}, what will I get?`)}
-              className="w-full flex justify-between gap-3 py-1.5 text-left hover:text-rust-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-patina-500 rounded-sm"
+              className="w-full flex justify-between gap-3 py-1.5 text-left hover:text-rust-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-patina-500 rounded-lg"
               title={`Estimate for ${r.name}`}
             >
               <span>{r.name}</span>
@@ -98,7 +98,7 @@ function TrackingCard({ pickup, go, canOpen }) {
       title={
         <span className="flex justify-between gap-2">
           <span>{pickup.pickupId}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-sm ${cancelled ? 'bg-rust-100 text-rust-700' : 'bg-patina-100 text-patina-700'}`}>
+          <span className={`text-xs px-2 py-0.5 rounded-lg ${cancelled ? 'bg-rust-100 text-rust-700' : 'bg-patina-100 text-patina-700'}`}>
             {STATUS_LABEL[pickup.status] || pickup.status}
           </span>
         </span>
@@ -143,7 +143,7 @@ function PickupsCard({ card, onSend }) {
             <button
               type="button"
               onClick={() => onSend(`Track ${p.pickupId}`)}
-              className="w-full flex justify-between gap-2 py-1.5 text-left hover:text-rust-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-patina-500 rounded-sm"
+              className="w-full flex justify-between gap-2 py-1.5 text-left hover:text-rust-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-patina-500 rounded-lg"
             >
               <span className="font-medium">{p.pickupId}</span>
               <span className="text-steel-500 text-xs">{STATUS_LABEL[p.status] || p.status}</span>
@@ -188,7 +188,7 @@ function HandoffCard({ card, user, number }) {
         href={buildWhatsAppLink(number, text)}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center justify-center gap-2 w-full bg-[#1F8A4C] hover:bg-[#18703D] text-white text-xs font-medium py-2 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#1F8A4C]"
+        className="inline-flex items-center justify-center gap-2 w-full bg-[#1F8A4C] hover:bg-[#18703D] text-white text-xs font-medium py-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#1F8A4C]"
       >
         Chat on WhatsApp
       </a>

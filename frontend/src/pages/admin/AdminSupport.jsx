@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import api from '../../services/api';
 
 const TABS = [
   { key: 'conversations', label: 'Conversations' },
@@ -38,7 +38,7 @@ function Badge({ tone = 'steel', children }) {
     rust: 'bg-rust-100 text-rust-700',
     patina: 'bg-patina-100 text-patina-700',
   };
-  return <span className={`text-xs px-2 py-0.5 rounded-sm ${tones[tone]}`}>{children}</span>;
+  return <span className={`text-xs px-2 py-0.5 rounded-lg ${tones[tone]}`}>{children}</span>;
 }
 
 function Conversations() {
@@ -86,7 +86,7 @@ function Conversations() {
                 setFilter(f);
                 setPage(1);
               }}
-              className={`text-xs px-3 py-1.5 rounded-sm capitalize ${filter === f ? 'bg-steel-900 text-white' : 'bg-steel-100 text-steel-700'}`}
+              className={`text-xs px-3 py-1.5 rounded-lg capitalize ${filter === f ? 'bg-ink text-white' : 'bg-steel-100 text-steel-700'}`}
             >
               {f}
             </button>
@@ -97,7 +97,7 @@ function Conversations() {
         ) : data.conversations.length === 0 ? (
           <div className="card text-sm text-steel-500">No conversations here.</div>
         ) : (
-          <ul className="border border-steel-100 rounded-sm divide-y divide-steel-100 bg-white">
+          <ul className="border border-steel-100 rounded-lg divide-y divide-steel-100 bg-surface">
             {data.conversations.map((c) => (
               <li key={c._id}>
                 <button
@@ -143,7 +143,7 @@ function Conversations() {
               )}
             </div>
             {selected.tickets.map((t) => (
-              <div key={t._id} className="text-xs bg-rust-100/50 border border-rust-100 rounded-sm p-2 mb-3">
+              <div key={t._id} className="text-xs bg-rust-100/50 border border-rust-100 rounded-lg p-2 mb-3">
                 <span className="font-medium">{t.ticketId}</span> · {t.reason.replace('_', ' ')} · {t.status}
                 <div className="text-steel-700 mt-1">{t.summary}</div>
               </div>
@@ -152,8 +152,8 @@ function Conversations() {
               {selected.messages.map((m) => (
                 <div key={m._id} className={`text-sm ${m.role === 'user' ? 'text-right' : ''}`}>
                   <div
-                    className={`inline-block max-w-[85%] text-left rounded-sm px-3 py-2 whitespace-pre-wrap ${
-                      m.role === 'user' ? 'bg-steel-900 text-white' : 'bg-steel-50 border border-steel-100'
+                    className={`inline-block max-w-[85%] text-left rounded-lg px-3 py-2 whitespace-pre-wrap ${
+                      m.role === 'user' ? 'bg-ink text-white' : 'bg-steel-50 border border-steel-100'
                     }`}
                   >
                     {m.content || <span className="text-steel-500 italic">[cards only]</span>}
@@ -211,7 +211,7 @@ function Tickets() {
               setStatus(s);
               setPage(1);
             }}
-            className={`text-xs px-3 py-1.5 rounded-sm ${status === s ? 'bg-steel-900 text-white' : 'bg-steel-100 text-steel-700'}`}
+            className={`text-xs px-3 py-1.5 rounded-lg ${status === s ? 'bg-ink text-white' : 'bg-steel-100 text-steel-700'}`}
           >
             {s.replace('_', ' ')}
           </button>
@@ -222,7 +222,7 @@ function Tickets() {
       ) : data.tickets.length === 0 ? (
         <div className="card text-sm text-steel-500">No tickets.</div>
       ) : (
-        <div className="border border-steel-100 rounded-sm overflow-x-auto bg-white">
+        <div className="border border-steel-100 rounded-lg overflow-x-auto bg-surface">
           <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-steel-100 text-left text-steel-700">
               <tr>

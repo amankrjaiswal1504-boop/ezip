@@ -57,7 +57,7 @@ const IconButton = ({ label, onClick, children }) => (
     onClick={onClick}
     aria-label={label}
     title={label}
-    className="w-8 h-8 flex items-center justify-center rounded-sm text-steel-300 hover:text-white hover:bg-steel-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rust-500"
+    className="w-8 h-8 flex items-center justify-center rounded-lg text-steel-300 hover:text-white hover:bg-ink-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-rust-500"
   >
     {children}
   </button>
@@ -105,11 +105,11 @@ export default function ChatPanel({ chat, user, whatsappHref, whatsappNumber, on
       role="dialog"
       aria-modal="false"
       aria-labelledby="chat-title"
-      className="fixed z-50 inset-0 sm:inset-auto sm:right-5 sm:bottom-[160px] sm:w-[380px] sm:h-[560px] sm:max-h-[calc(100dvh-180px)] flex flex-col bg-steel-50 sm:border sm:border-steel-300 sm:rounded-sm sm:shadow-2xl overflow-hidden motion-safe:animate-chat-in font-body"
+      className="fixed z-50 inset-0 sm:inset-auto sm:right-5 sm:bottom-[160px] sm:w-[380px] sm:h-[560px] sm:max-h-[calc(100dvh-180px)] flex flex-col bg-steel-50 sm:border sm:border-steel-300 sm:rounded-lg sm:shadow-2xl overflow-hidden motion-safe:animate-chat-in font-body"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <header className="bg-steel-900 text-white flex items-center gap-3 px-3 py-2.5 shrink-0">
-        <span className="w-9 h-9 bg-rust-600 rounded-sm flex items-center justify-center font-head font-bold shrink-0" aria-hidden>
+      <header className="bg-ink text-white flex items-center gap-3 px-3 py-2.5 shrink-0">
+        <span className="w-9 h-9 bg-rust-600 rounded-lg flex items-center justify-center font-head font-bold shrink-0" aria-hidden>
           S
         </span>
         <div className="flex-1 min-w-0">
@@ -163,7 +163,7 @@ export default function ChatPanel({ chat, user, whatsappHref, whatsappNumber, on
       <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3" aria-live="polite" aria-relevant="additions text">
         {messages.length === 0 && (
           <div>
-            <div className="bg-white border border-steel-100 rounded-sm p-3 text-sm text-steel-700">
+            <div className="bg-surface border border-steel-100 rounded-lg p-3 text-sm text-steel-700">
               Hi{user ? ` ${user.name.split(' ')[0]}` : ''}! I can check scrap rates, estimate your payout, book or track a
               pickup, and help with payments. Ask in English or हिंदी.
             </div>
@@ -174,7 +174,7 @@ export default function ChatPanel({ chat, user, whatsappHref, whatsappNumber, on
                   type="button"
                   onClick={() => send(q.message)}
                   disabled={sending}
-                  className="text-xs border border-steel-300 bg-white rounded-full px-3 py-1.5 hover:border-rust-600 hover:text-rust-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-patina-500"
+                  className="text-xs border border-steel-300 bg-surface rounded-full px-3 py-1.5 hover:border-rust-600 hover:text-rust-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-patina-500"
                 >
                   {q.label}
                 </button>
@@ -186,7 +186,7 @@ export default function ChatPanel({ chat, user, whatsappHref, whatsappNumber, on
         {messages.map((m) =>
           m.role === 'user' ? (
             <div key={m.id} className="flex justify-end">
-              <div className="max-w-[85%] bg-steel-900 text-white text-sm rounded-sm px-3 py-2 whitespace-pre-wrap break-words">
+              <div className="max-w-[85%] bg-ink text-white text-sm rounded-lg px-3 py-2 whitespace-pre-wrap break-words">
                 {m.content}
               </div>
             </div>
@@ -195,8 +195,8 @@ export default function ChatPanel({ chat, user, whatsappHref, whatsappNumber, on
               <div className="max-w-[92%] w-full">
                 {(m.content || (m.streaming && !m.cards.length)) && (
                   <div
-                    className={`inline-block text-sm rounded-sm px-3 py-2 break-words ${
-                      m.isError ? 'bg-rust-100 text-rust-700' : 'bg-white border border-steel-100 text-steel-900'
+                    className={`inline-block text-sm rounded-lg px-3 py-2 break-words ${
+                      m.isError ? 'bg-rust-100 text-rust-700' : 'bg-surface border border-steel-100 text-steel-900'
                     }`}
                   >
                     {m.content ? <Markdown onNavigate={onNavigate}>{m.content}</Markdown> : <TypingDots />}
@@ -227,7 +227,7 @@ export default function ChatPanel({ chat, user, whatsappHref, whatsappNumber, on
         </div>
       )}
 
-      <form onSubmit={submit} className="border-t border-steel-100 bg-white px-3 pt-2 pb-2 shrink-0">
+      <form onSubmit={submit} className="border-t border-steel-100 bg-surface px-3 pt-2 pb-2 shrink-0">
         <div className="flex gap-2 items-end">
           <label htmlFor="chat-input" className="sr-only">
             Type your message

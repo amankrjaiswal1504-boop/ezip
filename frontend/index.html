@@ -2,16 +2,43 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ScrapMate — Doorstep Scrap Pickup</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>ScrapMate — Sell scrap online, doorstep pickup at the best rates</title>
+    <meta
+      name="description"
+      content="Sell newspaper, metal, e-waste, appliances and old vehicles from home. Check today's scrap rates, book a free pickup, get digital weighing and instant UPI payment."
+    />
+    <meta name="theme-color" content="#A44A2A" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ScrapMate" />
+    <meta property="og:title" content="ScrapMate — Sell scrap from your doorstep" />
+    <meta
+      property="og:description"
+      content="Free pickup, digital weighing in front of you, and instant payment. Check scrap rates in your city."
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // Apply the saved theme before first paint (no flash of the wrong theme).
+      try {
+        var t = localStorage.getItem('sm-theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
   </head>
-  <body class="bg-steel-50">
+  <body>
+    <noscript>ScrapMate needs JavaScript to run. Please enable it in your browser.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

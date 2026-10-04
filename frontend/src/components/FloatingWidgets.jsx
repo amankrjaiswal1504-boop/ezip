@@ -9,7 +9,7 @@ function Tooltip({ children }) {
   return (
     <span
       role="tooltip"
-      className="pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-sm bg-steel-900 text-white text-xs px-2.5 py-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity hidden sm:block"
+      className="pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink text-white text-xs px-2.5 py-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity hidden sm:block"
     >
       {children}
     </span>
