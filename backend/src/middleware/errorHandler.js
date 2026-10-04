@@ -6,7 +6,6 @@ function notFound(req, res, next) {
   next(err);
 }
 
-// eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
   let status = err.status || err.statusCode || (res.statusCode !== 200 ? res.statusCode : 500);
   let message = err.message || 'Server error';

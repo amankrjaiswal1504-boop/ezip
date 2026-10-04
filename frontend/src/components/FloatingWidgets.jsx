@@ -26,6 +26,8 @@ export default function FloatingWidgets() {
   const [open, setOpen] = useState(false);
   const chatButtonRef = useRef(null);
   const page = location.pathname;
+  // The collector app has a bottom tab bar; sit above it with smaller buttons.
+  const appShell = page.startsWith('/collector');
   const chat = useChatAssistant({ user, isOpen: open, page });
 
   const pickupId = pickupIdFromPath(page);
@@ -67,7 +69,7 @@ export default function FloatingWidgets() {
       )}
 
       <div
-        className={`fixed z-50 flex flex-col items-end gap-3 right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] sm:right-5 sm:bottom-5 ${
+        className={`fixed z-50 flex flex-col items-end gap-3 right-[max(1rem,env(safe-area-inset-right))] ${appShell ? 'bottom-[calc(72px+env(safe-area-inset-bottom))] [&_.w-14]:w-12 [&_.h-14]:h-12' : 'bottom-[max(1rem,env(safe-area-inset-bottom))]'} sm:right-5 ${appShell ? 'sm:bottom-20' : 'sm:bottom-5'} ${
           open ? 'hidden sm:flex' : ''
         }`}
       >

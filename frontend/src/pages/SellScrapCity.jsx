@@ -18,7 +18,6 @@ export default function SellScrapCity() {
 
   useEffect(() => {
     if (city) setCity(city);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city]);
 
   const top = data?.rates?.slice(0, 3) || [];
@@ -44,7 +43,6 @@ export default function SellScrapCity() {
     });
     document.head.appendChild(el);
     return () => el.remove();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city]);
 
   if (error) {

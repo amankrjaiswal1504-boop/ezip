@@ -37,7 +37,6 @@ function FitBounds({ points }) {
     const valid = points.filter((p) => p && Number.isFinite(p[0]) && Number.isFinite(p[1]));
     if (valid.length === 1) map.setView(valid[0], 15);
     else if (valid.length > 1) map.fitBounds(valid, { padding: [36, 36], maxZoom: 15 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(points)]);
   return null;
 }

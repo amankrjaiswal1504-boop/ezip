@@ -22,7 +22,6 @@ export default function SlotPicker({ pinCode, date, slot, onChange, excludePicku
         }
       })
       .catch(() => setDays([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pinCode]);
 
   useEffect(() => {

@@ -7,7 +7,6 @@ async function generatePickupId() {
   // Concurrent bookings can race on the count; step forward until free.
   for (let i = 0; i < 20; i += 1) {
     const candidate = `SM-${year}-${String(seq).padStart(6, '0')}`;
-    // eslint-disable-next-line no-await-in-loop
     if (!(await Pickup.exists({ pickupId: candidate }))) return candidate;
     seq += 1 + Math.floor(Math.random() * 5);
   }

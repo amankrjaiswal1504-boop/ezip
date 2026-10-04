@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { OtpCode } = require('../models/platform');
-const { sendSms, sendWhatsApp } = require('./channels');
+const { sendSms } = require('./channels');
 const logger = require('../utils/logger');
 
 const TTL_MS = 5 * 60 * 1000;
@@ -40,7 +40,6 @@ async function sendOtp(phone, purpose = 'login') {
     await sendSms(phone, text);
   } else {
     logger.info(`[mock-otp] ${phone}: ${code}`);
-    // eslint-disable-next-line no-console
     if (process.env.NODE_ENV !== 'test') console.log(`[mock-otp] OTP for ${phone} is ${code}`);
   }
   const exposeCode = !smsConfigured() && process.env.NODE_ENV !== 'production';

@@ -42,7 +42,7 @@ export default function CollectorLayout() {
         </Suspense>
       </main>
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-steel-100" aria-label="Collector" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="max-w-3xl mx-auto grid grid-cols-4 pr-20 sm:pr-0">
+        <div className="max-w-3xl mx-auto grid grid-cols-4">
           {TABS.map((tab) => (
             <NavLink
               key={tab.to}

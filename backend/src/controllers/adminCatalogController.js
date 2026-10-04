@@ -167,7 +167,6 @@ async function bulkPrices(req, res, next) {
       for (const p of prices) {
         const item = items.find((i) => String(i._id) === String(p.item));
         const f = 1 + percentChange / 100;
-        // eslint-disable-next-line no-await-in-loop
         await setPrice(req, item, {
           city,
           minPrice: Math.max(0, Math.round(p.minPrice * f)),
@@ -178,10 +177,8 @@ async function bulkPrices(req, res, next) {
       }
     } else {
       for (const u of updates) {
-        // eslint-disable-next-line no-await-in-loop
         const item = await ScrapItem.findById(u.itemId);
         if (!item) continue;
-        // eslint-disable-next-line no-await-in-loop
         await setPrice(req, item, { city, minPrice: u.minPrice, maxPrice: u.maxPrice, recyclerPrice: u.recyclerPrice });
         results.push(item.name);
       }
@@ -219,10 +216,8 @@ async function copyCityPrices(req, res, next) {
     const f = 1 + percentChange / 100;
     let created = 0;
     for (const p of prices) {
-      // eslint-disable-next-line no-await-in-loop
       const exists = await ScrapPrice.exists({ item: p.item, city: toCity });
       if (exists) continue;
-      // eslint-disable-next-line no-await-in-loop
       await ScrapPrice.create({
         item: p.item,
         city: toCity,

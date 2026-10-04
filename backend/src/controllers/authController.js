@@ -88,7 +88,8 @@ async function login(req, res, next) {
 async function refresh(req, res, next) {
   try {
     const raw = req.cookies?.[REFRESH_COOKIE];
-    if (!raw) return res.status(401).json({ success: false, message: 'No session' });
+    // No refresh cookie = simply not logged in (not an error for visitors).
+    if (!raw) return res.json({ success: true, data: { user: null } });
     const record = await RefreshToken.findOne({ tokenHash: hashToken(raw) });
     if (!record || record.revokedAt || record.expiresAt < new Date()) {
       // Reuse of a revoked token: revoke every session for that user.

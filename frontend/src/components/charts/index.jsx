@@ -56,7 +56,6 @@ export function LineChart({ data, x, series, height = 220, format = compact, xFo
         data.map((d, i) => [pad.l + i * step, pad.t + (H - pad.t - pad.b) * (1 - (Number(d[s.key]) || 0) / max)])
       ),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, series, H]);
   if (!data.length) return <p className="text-sm text-steel-500 py-8 text-center">No data for this period.</p>;
   const ticks = [0, 0.5, 1].map((f) => maxY * f);

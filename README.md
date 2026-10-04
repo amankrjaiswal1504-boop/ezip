@@ -1,375 +1,354 @@
-# ScrapMate — Doorstep Scrap Collection & Recycling Marketplace
+# ScrapMate — Doorstep Scrap Collection & Recycling Platform
 
-A full-stack MVP: customers schedule scrap pickups, collectors weigh items at the door,
-admins manage prices/collectors/pickups, and payments + receipts are recorded end-to-end.
+Customers check live scrap rates, book a free doorstep pickup, verify the collector with a
+door code, watch their scrap being weighed (with photo proof) and get paid instantly by UPI,
+bank, cash or wallet. Collectors run their day from a mobile partner app. Admins and staff
+run operations, pricing, payouts, support and analytics.
 
-This is an original project (branding, copy, and design created from scratch) — it is not
-affiliated with, and does not copy any code, assets, or exact pricing from, any existing
-scrap-collection company.
+An original project: branding, copy, design and code are our own. It is not affiliated with,
+and copies nothing from, any existing scrap-collection company.
 
 ---
 
-## 1. Project overview
+## Contents
+1. [Features](#1-features)
+2. [Tech stack](#2-tech-stack)
+3. [Project structure](#3-project-structure)
+4. [Quick start (local)](#4-quick-start-local)
+5. [Run with Docker](#5-run-with-docker)
+6. [Environment variables](#6-environment-variables)
+7. [Demo accounts](#7-demo-accounts)
+8. [Scripts, tests and CI](#8-scripts-tests-and-ci)
+9. [API reference](#9-api-reference)
+10. [How things work](#10-how-things-work)
+11. [Deployment](#11-deployment)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Known limitations](#13-known-limitations)
 
-Customer flow: register → view scrap rates → schedule a pickup (category → items → quantity
-→ estimate → address → date → time → contact → confirm) → track pickup status → collector
-weighs items at the door → final amount calculated automatically → payment recorded →
-digital receipt.
+---
 
-Admin flow: dashboard stats → manage customers/collectors → assign collectors to pickups →
-manage scrap categories/items/prices (with price-change history) → view reports (revenue,
-scrap by item) with CSV export.
+## 1. Features
 
-Collector flow: see assigned pickups → update status through the day → enter actual weights
-→ system calculates the final amount from the admin-set rate → mark pickup completed.
+Everything runs locally **without any paid keys**: each external service (AI, SMS, WhatsApp,
+email, Razorpay, Cloudinary, maps, web push) has an env var and a working fallback (console
+log, mock, local file, or OpenStreetMap).
 
-## 2. Features
+**Customer website (English + हिंदी, light/dark mode, installable PWA)**
+- Home page with a live price estimator (no login), real stats from the database,
+  testimonials from approved reviews, FAQ, trust badges and a city selector
+- Rates page by category with search, price-trend chart per item and price alerts
+- SEO city pages: `/sell-scrap/<city>` with structured data, sitemap and Open Graph image
+- Booking wizard: sell or **donate** to an NGO, item picker with condition grading for
+  e-waste/appliances, photos, saved or new address with **search autocomplete, map pin and
+  "use my location"**, live **PIN-code serviceability**, slots with remaining capacity,
+  coupons, auto-saved draft, and a confirmation with the door code and a calendar file
+- **Guest booking with phone OTP** (account created automatically) and phone-OTP login
+- Pickup tracking: status timeline, **4-digit door code**, **live collector map with ETA**,
+  accept or dispute the weighed amount, reschedule/cancel, collector rating, PDF receipt,
+  donation and **certified e-waste disposal certificates**
+- Account: overview with loyalty tier, **wallet** with withdrawals, **eco-impact dashboard**
+  (kg, CO₂, trees, badges, shareable card), **referrals** + leaderboard, **recurring
+  pickups**, price alerts, addresses, notification centre, profile (business/GST details,
+  notification channels, password, theme, language)
+- Business page with bulk-quote requests and volume pricing tiers
+- Floating **AI chat assistant** (Claude, or a rule-based bot without a key) and
+  **WhatsApp** button on every page
 
-- JWT authentication (httpOnly cookie) with customer / collector / admin roles
-- Admin-controlled scrap categories, items, and city-specific price ranges, with full price
-  history (old price, new price, changed by, timestamp)
-- Multi-step pickup booking wizard with a live estimated-value range
-- Pickup status timeline: BOOKED → ASSIGNED → COLLECTOR_ON_THE_WAY → ARRIVED → WEIGHING →
-  COMPLETED (or CANCELLED)
-- Collector weighing screen: enters actual weight per item, picks min/avg/max rate (rate
-  itself is never editable by the collector — it always comes from the admin-set price)
-- Payment recording for cash / UPI / bank transfer, plus a Razorpay-shaped flow that
-  automatically falls back to a mock order when no Razorpay keys are configured
-- Digital receipt per completed pickup
-- Admin dashboard with pickup/customer/collector/revenue stats and CSV-exportable reports
-- Saved addresses (add/edit/delete/default) for customers
-- Seed script with demo admin/collector/customer accounts and realistic starter pricing
-- **Floating widgets on every page** (bottom-right): AI chat assistant + WhatsApp contact
-- **ScrapMate Assistant** (AI chat): answers rate questions from the live price list, estimates
-  payouts, tracks the logged-in user's pickups, proposes cancel/reschedule (only executed after the
-  user presses Confirm), answers from an admin-editable FAQ, English + Hindi/Hinglish, streaming
-  replies, and hands off to a human (support ticket + WhatsApp) when asked, when the user is upset,
-  or after two unanswered messages. Without an API key it runs as a rule-based bot on the same data.
-- **WhatsApp button** with a smart prefilled message (user's name, pickup ID on pickup pages) and
-  online/offline status from configured support hours
-- **Admin "Chat & Support"**: conversations (filter escalated/unresolved, transcript, mark
-  resolved), support tickets, chat analytics (topics, repeated questions, escalation rate), FAQ editor
+**Collector partner app (mobile-first)**
+- Today's jobs, availability toggle, earnings snapshot
+- Daily **route** ordered nearest-first on a map, with navigation links and live location sharing
+- Job screen: start trip, running late, arrive, **enter the customer's door code**, weigh each
+  item with a **scale photo**, see the customer's accept/dispute live, choose the payout
+  (cash, UPI, bank, wallet) and add evidence photos
+- **Offline-tolerant weighing**: saved on the phone and synced when the connection returns
+- Earnings: per-pickup commission, weekly bonus progress and weekly statements
+- Settings: working hours and service PIN codes
 
-## 3. Tech stack
+**Admin & staff console**
+- Dashboard, **analytics** (revenue, margin vs recycler price, funnel, areas, slots, top
+  items, collector performance, repeat customers) with CSV and PDF export
+- **Dispatch board** (kanban by status) and **live map** of collectors and pickups
+- Pickups table with search/filters/bulk assign/auto-assign/cancel and a detail view
+- Customers, collectors and **staff roles** (support / operations / finance) with permissions
+- Categories & items (images, units, CO₂ factors, active toggles), **city prices** with
+  bulk % change, copy-city and full price history
+- Service areas & PIN codes, **time slots** (capacity, cutoffs, holidays, closed days)
+- Coupons, review moderation (featured testimonials), NGO partners, business quotes,
+  payouts & withdrawals
+- **Fraud & abuse**: blocklist (phone/email/IP/PIN), duplicate-booking flags,
+  cancellation and active-booking limits
+- **Audit log** of sensitive actions and **site settings** (support hours, WhatsApp number,
+  banners, home stats, AI assistant, rewards, collector pay, fraud limits, pricing)
+- Chat & support: conversations, tickets, FAQ editor and chat analytics
 
-**Frontend:** React 18, Vite, React Router, Tailwind CSS, Axios, React Hook Form, react-hot-toast
-**Backend:** Node.js, Express, Mongoose (MongoDB), JWT, bcryptjs, helmet, express-rate-limit,
-Anthropic SDK (`@anthropic-ai/sdk`) for the chat assistant
-**Testing:** Jest, Supertest, mongodb-memory-server (no local MongoDB needed for tests)
-**Database:** MongoDB
+**Platform**
+- Server-side pricing, bonuses and payouts (the client is never trusted); collectors can only
+  pick min/avg/max within the admin price
+- Real-time updates with Socket.IO (status, location, notifications) plus email, WhatsApp,
+  SMS and web push
+- Security: zod validation on every route, NoSQL-injection sanitising, strict CORS, helmet
+  CSP, httpOnly cookies, **rotating refresh tokens**, **account lockout**, per-route rate
+  limits, upload type/size/magic-byte checks, ownership checks everywhere (including the AI tools)
+- Structured logging (pino), health checks, graceful shutdown, Docker, GitHub Actions CI
 
-## 4. Folder structure
+## 2. Tech stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | React 18, Vite, React Router 6, Tailwind CSS (CSS-variable theme, dark mode), Axios, Socket.IO client, Leaflet + OpenStreetMap, lucide icons, react-markdown, react-hot-toast |
+| Backend | Node.js (CommonJS), Express 4, Mongoose 8, JWT, bcryptjs, zod, helmet, express-rate-limit, express-mongo-sanitize, Socket.IO, pino, PDFKit, Nodemailer, Razorpay SDK, web-push, multer/Cloudinary, Anthropic SDK |
+| Database | MongoDB (local, Atlas, or replica set for transactions) |
+| Tests | Jest + Supertest + mongodb-memory-server, Vitest + Testing Library, Playwright |
+| Ops | Docker, docker compose (MongoDB replica set + API + nginx), GitHub Actions |
+
+## 3. Project structure
 
 ```
 scrapmate/
   backend/
     src/
-      config/db.js
-      models/            # User, Address, ScrapCategory, ScrapItem, ScrapPrice,
-                          # PriceHistory, Pickup, Payment, ChatSession, ChatMessage,
-                          # SupportTicket, Faq
-      services/           # rateService, pickupService (shared by controllers + chat)
-        chat/             # claudeAgent, tools, systemPrompt, fallbackBot, classifier,
-                          # catalog, sanitize, tickets
-      middleware/         # auth, error handler, validation
-      controllers/
-      routes/
-      utils/               # JWT helpers, ID generators
+      app.js, server.js, socket.js
+      config/          db, constants
+      models/          User, Pickup, Address, ScrapCategory/Item/Price, PriceHistory, Payment,
+                       Chat*, SupportTicket, Faq, platform.js (Setting, AuditLog, Notification,
+                       OtpCode, RefreshToken, ServiceArea, Review, Coupon, WalletTransaction,
+                       Withdrawal, RecurringPlan, Quote, PriceAlert, Ngo, AnalyticsEvent, Blocklist)
+      services/        bookingService (create/complete/payout), slot, serviceability, rate,
+                       coupon, wallet, impact, referral, assignment, fraud, otp, channels
+                       (email/SMS/WhatsApp/push), notification, storage, geo, pdf,
+                       paymentGateway (Razorpay/RazorpayX), settings, audit, jobs, chat/*
+      controllers/     auth, users, addresses, scrap, public, pickups, collector, payments,
+                       growth (wallet, referrals, impact, recurring, alerts, quotes, uploads),
+                       chat, admin, adminCatalog, adminGrowth, adminSystem, supportAdmin
+      routes/          one router per area, zod-validated
+      middleware/      auth (protect / optionalAuth / authorize / requirePermission), validate, errors
       seed/seed.js
-      app.js
-      server.js
-    tests/                 # Jest + Supertest (chat fallback mode, chat AI mode with mocked SDK)
-    .env.example
-    package.json
+    scripts/e2e-stack.js   throwaway stack for Playwright
+    tests/                 Jest suites
   frontend/
     src/
-      components/          # Navbar, Footer, FloatingWidgets, chat/ChatPanel, chat/ChatCards
-      hooks/               # useChatAssistant (streaming + fallback, history, unread)
-      utils/whatsapp.js    # wa.me link + prefilled message builder
-      layouts/             # MainLayout, DashboardLayout
-      pages/                # every screen listed in section 2
-      context/AuthContext.jsx
-      services/api.js, services/chatApi.js
-      routes/ProtectedRoute.jsx
-    .env.example
-    package.json
-  README.md
+      components/      ui kit, charts, MapView, AddressForm, SlotPicker, Estimator, chat/*, …
+      context/         Auth, Config (city), Theme, Realtime
+      i18n/            messages (en, hi) + provider
+      layouts/         Main, Dashboard (customer/admin), Collector
+      pages/           public pages, account/, collector/, admin/
+      hooks/, services/, utils/, test/
+    e2e/               Playwright spec
+    public/            manifest, icons, service worker, OG image
+  docker-compose.yml
+  .github/workflows/ci.yml
 ```
 
-## 5. Installation
+## 4. Quick start (local)
 
-Requires Node.js 18+ and a running MongoDB instance (local or Atlas).
+Requires **Node.js 18+** (22 recommended) and MongoDB (local or Atlas).
 
 ```bash
-# Backend
-cd backend
-npm install
+# 1. Install
+cd backend && npm install
+cd ../frontend && npm install
 
-# Frontend
-cd ../frontend
-npm install
+# 2. Configure
+cp backend/.env.example backend/.env      # set MONGODB_URI (local or Atlas)
+cp frontend/.env.example frontend/.env    # VITE_API_URL must match the backend PORT
+
+# 3. Seed demo data (WIPES the database in MONGODB_URI first)
+cd backend && npm run seed
+
+# 4. Run
+cd backend && npm run dev                  # API  → http://localhost:5000
+cd frontend && npm run dev                 # Web  → http://localhost:5173
 ```
+
+> If you change `PORT` in `backend/.env` (e.g. 3000), set `VITE_API_URL` in `frontend/.env`
+> to the same port, and restart `npm run dev` after pulling theme changes (Tailwind reads its
+> config at start-up).
+
+**No MongoDB installed?** Use a free MongoDB Atlas cluster, or `docker compose up mongo`.
+
+## 5. Run with Docker
+
+```bash
+docker compose up --build                 # → http://localhost:8080
+docker compose run --rm seed              # optional demo data (wipes the DB)
+```
+
+Compose starts MongoDB as a single-node **replica set** (so wallet/payment transactions are
+atomic), the API, and nginx serving the web app and proxying `/api`, `/uploads` and
+`/socket.io` on the same origin. Optional secrets are read from `backend/.env`; set
+`JWT_SECRET` (and `PUBLIC_URL` when deploying) in your shell or a root `.env`.
 
 ## 6. Environment variables
 
-Copy `.env.example` to `.env` in both `backend/` and `frontend/` and adjust as needed.
+All variables, with comments, are in [`backend/.env.example`](backend/.env.example) and
+[`frontend/.env.example`](frontend/.env.example). Without keys, every integration has a
+fallback:
 
-**backend/.env**
-```
-PORT=5000
-NODE_ENV=development
-CLIENT_URL=http://localhost:5173
-MONGODB_URI=mongodb://127.0.0.1:27017/scrapmate
-JWT_SECRET=change_this_dev_secret_key
-JWT_EXPIRES_IN=7d
-COOKIE_NAME=scrapmate_token
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASS=
+| Feature | Variables | Without keys |
+|---|---|---|
+| AI chat | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `ANTHROPIC_EFFORT`, `ANTHROPIC_FALLBACKS` | Rule-based EN/HI bot on the same data |
+| Phone OTP / SMS | `SMS_PROVIDER` (`twilio`/`msg91`) + provider keys | Code printed to the API console and shown on screen in non-production ("test mode") |
+| Email | `SMTP_*` | Logged to the console |
+| WhatsApp notifications | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Logged to the console |
+| Payments & payouts | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAYX_ACCOUNT_NUMBER` | Mock orders/payouts, marked "Test mode" in admin |
+| Images | `CLOUDINARY_*` | Saved to `backend/uploads` and served by the API |
+| Address search | `MAPS_API_KEY` (Google Geocoding) | OpenStreetMap Nominatim |
+| Web push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | In-app, email and WhatsApp notifications still work |
+| WhatsApp button | `VITE_WHATSAPP_NUMBER` or Site settings → Support | Opens WhatsApp's contact picker |
 
-# AI chat assistant (optional)
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-5-5
-ANTHROPIC_EFFORT=low
-ANTHROPIC_FALLBACKS=default
-CHAT_RATE_LIMIT_PER_MIN=12
+Support hours, WhatsApp number, banners, rewards, collector pay, fraud limits, slots and the
+AI on/off switch are **admin-editable** in Site settings; env values are the defaults.
 
-# Support / WhatsApp
-SUPPORT_WHATSAPP_NUMBER=
-SUPPORT_HOURS_START=9
-SUPPORT_HOURS_END=20
-SUPPORT_TIMEZONE=Asia/Kolkata
-SUPPORT_REPLY_MINUTES=10
-DEFAULT_CITY=Bengaluru
-WHATSAPP_TOKEN=
-WHATSAPP_PHONE_ID=
-```
-The app runs fully without Cloudinary, Razorpay, SMTP, or Anthropic credentials — those features
-fall back to mock behavior (logged to the console) when the keys are missing.
+## 7. Demo accounts
 
-| Variable | Purpose |
-|---|---|
-| `ANTHROPIC_API_KEY` | Enables AI mode for the chat assistant. Server-side only, never sent to the browser. Without it the widget uses the rule-based bot. |
-| `ANTHROPIC_MODEL` | Model ID (default `claude-sonnet-5-5`). |
-| `ANTHROPIC_EFFORT` | `low` / `medium` / `high`. Chat replies are short, so `low` keeps them fast and cheap. |
-| `ANTHROPIC_FALLBACKS` | `default` enables the API's server-side refusal fallback (Claude API only). Set `off` for a platform or model that rejects it. |
-| `CHAT_RATE_LIMIT_PER_MIN` | Messages per minute per logged-in user (or per IP when anonymous). |
-| `SUPPORT_WHATSAPP_NUMBER` | Digits with country code, e.g. `919876543210`. Used when the frontend doesn't set `VITE_WHATSAPP_NUMBER`. |
-| `SUPPORT_HOURS_*`, `SUPPORT_TIMEZONE`, `SUPPORT_REPLY_MINUTES` | Drive the WhatsApp online/offline dot and the "replies in ~X min" tooltip. |
-| `DEFAULT_CITY` | City used for rates when the user has no default address. |
-| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Reserved for outgoing WhatsApp Cloud API notifications (Phase 2). Not used yet. |
+Created by `npm run seed` — **development only, never use in production.**
 
-**frontend/.env**
-```
-VITE_API_URL=http://localhost:5000/api
-VITE_WHATSAPP_NUMBER=
-VITE_WHATSAPP_MESSAGE=Hi ScrapMate, I need help with scrap pickup
-```
-If neither `VITE_WHATSAPP_NUMBER` nor `SUPPORT_WHATSAPP_NUMBER` is set, the WhatsApp button
-still works but opens WhatsApp's contact picker with the message prefilled.
+| Role | Login | Password |
+|---|---|---|
+| Admin | admin@scrapmate.dev | Admin@123 |
+| Staff — support / operations / finance | support@ · ops@ · finance@scrapmate.dev | Staff@123 |
+| Collectors (one per city; `collector1` = Bengaluru) | collector1…11@scrapmate.dev | Collector@123 |
+| Customer | customer@scrapmate.dev (or phone 9999900003 + OTP) | Customer@123 |
+| Business customer | business@scrapmate.dev | Business@123 |
 
-## 7. MongoDB setup
+The seed covers 10 cities (Bengaluru, Delhi, Ghaziabad, Noida, Gurugram, Mumbai, Hyderabad,
+Chennai, Pune, Kolkata) with service areas and PIN codes, city prices with recycler prices and
+history, completed pickups with payments and reviews, coupons (`FIRST5`, `BULK50`,
+`DIWALI10`, `EWASTE100`), NGOs, FAQs, a business quote, a recurring plan, a price alert, chat
+tickets and funnel events.
 
-- **Local:** install MongoDB Community Server and make sure it's running on
-  `mongodb://127.0.0.1:27017`.
-- **Atlas (cloud, free tier):** create a cluster, get its connection string, and set it as
-  `MONGODB_URI` in `backend/.env`.
+**Try:** book as a guest with any phone number (the OTP shows on screen in test mode), then
+log in as `collector1`, open the pickup, start the trip, enter the door code from the
+customer's page, weigh with photos and complete with "Wallet". Watch the customer's page
+update live.
 
-## 8. Seed the database
+## 8. Scripts, tests and CI
 
-```bash
-cd backend
-npm run seed
-```
-This clears existing data and creates: an admin account, two collector accounts, one demo
-customer, all scrap categories/items/prices from the spec (Normal Recyclables, E-Waste,
-Appliances, Vehicle Scrap), a saved address, one sample pickup, and the starter FAQs the chat
-assistant answers from. It also clears chat conversations and support tickets.
+| Where | Command | What |
+|---|---|---|
+| backend | `npm run dev` / `npm start` | API with nodemon / production |
+| backend | `npm run seed` | Wipe + load demo data |
+| backend | `npm test` | Jest + Supertest on in-memory MongoDB (auth, booking → OTP → weighing → payout, permissions, fraud, coupons, wallet, analytics, chat) |
+| backend | `npm run lint` | ESLint |
+| frontend | `npm run dev` / `npm run build` | Vite dev server / production build |
+| frontend | `npm test` | Vitest + Testing Library |
+| frontend | `npm run e2e` | Playwright: guest books with OTP → confirmation → tracking (boots its own in-memory DB, API on :5055 and Vite on :5199; never touches your `.env` database) |
+| frontend | `npm run lint` | ESLint |
 
-## 9. Start the backend
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and build for both apps, the
+Playwright test, and `docker compose build`.
 
-```bash
-cd backend
-npm run dev      # nodemon, auto-restarts on changes
-# or: npm start
-```
-API runs at `http://localhost:5000`. Health check: `GET /api/health`.
+## 9. API reference
 
-## 10. Start the frontend
-
-```bash
-cd frontend
-npm run dev
-```
-App runs at `http://localhost:5173`.
-
-### Run the tests
-
-```bash
-cd backend
-npm test
-```
-Tests start their own in-memory MongoDB (the first run downloads a MongoDB binary, ~100 MB).
-They cover the chat assistant: answers from real DB prices, ownership checks (including inside
-tool calls), confirm-gated cancellation, escalation to tickets, SSE streaming, prompt-injection
-sanitising, and the Claude tool loop with the SDK mocked (no API key or network needed).
-
-### Try the assistant
-
-Open any page and click the rust chat button (bottom-right). Try: "copper rate", "10 kg
-newspaper and 1 fridge" (then **Book this pickup**), "तांबे का भाव", "track my pickup" (log in
-as the demo customer first), "cancel SM-2026-000001", or "talk to a human". Then log in as admin
-and open **Chat & Support** to see the conversation and ticket.
-
-## 11. API documentation
-
-All routes are prefixed with `/api`. Protected routes require the auth cookie (or a
-`Authorization: Bearer <token>` header).
+All routes are under `/api`. Auth uses httpOnly cookies (a `Bearer` header also works).
+Request bodies are validated (zod) and errors look like
+`{ success: false, message, errors?: [{ field, message }] }`.
 
 ```
-AUTH
-POST   /auth/register
-POST   /auth/login
-POST   /auth/logout
-GET    /auth/me                       (protected)
-POST   /auth/forgot-password
-
-USER
-GET    /users/profile                 (protected)
-PUT    /users/profile                 (protected)
-
-ADDRESSES (all protected)
-GET    /addresses
-POST   /addresses
-PUT    /addresses/:id
-DELETE /addresses/:id
-
-SCRAP (public)
-GET    /scrap/categories
-GET    /scrap/items?category=
-GET    /scrap/rates?city=&search=&category=
-
-PICKUPS (customer, protected)
-POST   /pickups
-GET    /pickups
-GET    /pickups/:id                   (customer/collector/admin can view their own)
-PUT    /pickups/:id/cancel
-
-COLLECTOR (collector role only)
-GET    /collector/pickups
-GET    /collector/pickups/:id
-PUT    /collector/pickups/:id/status
-PUT    /collector/pickups/:id/weighing
-PUT    /collector/pickups/:id/complete
-
-CHAT (public; account tools need login)
-GET    /chat/config                   AI/fallback mode, WhatsApp number, support hours
-GET    /chat/history                  current conversation (anonymous: per browser session)
-DELETE /chat/history                  clear conversation (escalated ones are archived for support)
-POST   /chat                          { message, page?, stream? } - SSE stream by default,
-                                       JSON when stream=false
-POST   /chat/actions/:actionId        (protected) { decision: confirm|dismiss } for a proposed
-                                       cancel/reschedule
-
-PAYMENTS (protected)
-POST   /payments/create
-POST   /payments/verify
-GET    /payments/:id
-
-ADMIN (admin role only)
-GET    /admin/dashboard
-GET    /admin/users
-PUT    /admin/users/:id/toggle-active
-GET    /admin/collectors
-POST   /admin/collectors
-PUT    /admin/collectors/:id
-GET    /admin/pickups
-POST   /admin/assign-collector
-POST   /admin/scrap-items
-PUT    /admin/scrap-items/:id
-DELETE /admin/scrap-items/:id
-GET    /admin/reports?type=revenue|scrap-by-category|summary
-GET    /admin/support/conversations?filter=escalated|unresolved&page=
-GET    /admin/support/conversations/:id
-PUT    /admin/support/conversations/:id/resolve
-GET    /admin/support/tickets?status=open|in_progress|resolved|unresolved&page=
-PUT    /admin/support/tickets/:ticketId       { status?, adminNote? }
-GET    /admin/support/analytics?days=30
-GET    /admin/faqs
-POST   /admin/faqs
-PUT    /admin/faqs/:id
-DELETE /admin/faqs/:id
+AUTH        POST /auth/register · /auth/login · /auth/logout · /auth/refresh
+            GET  /auth/me · /auth/session
+            POST /auth/otp/request {phone, purpose} · /auth/otp/verify {phone, code, name?}
+            POST /auth/forgot-password · /auth/reset-password · /auth/change-password
+USERS       GET/PUT /users/profile · POST /users/push/subscribe · /users/push/unsubscribe
+ADDRESSES   GET/POST /addresses · PUT/DELETE /addresses/:id   (each with serviceability)
+PUBLIC      GET /scrap/categories · /scrap/items · /scrap/rates?city&search&category
+            GET /scrap/cities · /scrap/stats · /scrap/trends/:itemId?city
+            POST /scrap/estimate {city, items[{itemId, estimatedQuantity, condition?}]}
+            GET /public/config · /public/serviceability?pin&city · /public/slots?date&pin
+            GET /public/slots/calendar · /public/geo/search?q · /public/geo/reverse?lat&lng
+            GET /public/testimonials · /public/faqs · /public/ngos · /public/leaderboard
+            GET /public/cities/:city · POST /public/events · GET /sitemap.xml
+PICKUPS     POST /pickups · POST /pickups/guest (phone OTP) · GET /pickups?status&page
+            GET /pickups/:id · /pickups/:id/receipt.pdf · /pickups/:id/calendar.ics
+            GET /pickups/:id/certificate/donation|ewaste
+            PUT /pickups/:id/cancel · /reschedule · /decision {accepted|disputed}
+            POST /pickups/:id/review
+COLLECTOR   GET /collector/pickups?view · /collector/route?date · /collector/earnings
+            GET /collector/pickups/:id · PUT /collector/pickups/:id/status
+            POST /collector/pickups/:id/verify-otp · PUT /collector/pickups/:id/weighing
+            PUT /collector/pickups/:id/complete {payoutMethod, upiId?, bankAccount?}
+            POST /collector/pickups/:id/late · POST /collector/sync (offline queue)
+            PUT /collector/location · PUT /collector/availability
+GROWTH      GET /wallet · POST /wallet/withdraw · GET /referrals · GET /impact
+            POST /coupons/validate · CRUD /recurring · CRUD /price-alerts
+            POST /quotes · GET /quotes/mine · GET /notifications · PUT /notifications/:id/read
+            POST /uploads?folder (images, 5 MB, JPEG/PNG/WebP)
+PAYMENTS    GET /payments · POST /payments/create · POST /payments/verify · GET /payments/:id
+            POST /payments/webhook   (Razorpay, raw body + signature)
+CHAT        GET /chat/config · GET/DELETE /chat/history · POST /chat (SSE) · POST /chat/actions/:id
+ADMIN       (admin, or staff with the matching permission)
+            GET /admin/dashboard · /admin/analytics?days&city&format=csv|pdf
+            /admin/users · /admin/collectors · /admin/staff · /admin/pickups (+ /bulk, /:id,
+            /:id/status, /:id/auto-assign, /:id/clear-flags) · /admin/assign-collector
+            /admin/dispatch · /admin/live-map · /admin/categories · /admin/scrap-items
+            /admin/prices/bulk · /admin/prices/copy-city · /admin/prices/history
+            /admin/service-areas · /admin/coupons · /admin/reviews · /admin/ngos
+            /admin/quotes · /admin/withdrawals · /admin/payments · /admin/settings/:key
+            /admin/audit-log · /admin/fraud (+ /blocklist) · /admin/support/* · /admin/faqs
 ```
 
-## 12. Demo accounts (DEVELOPMENT ONLY — created by the seed script)
+## 10. How things work
 
-| Role      | Email                     | Password       |
-|-----------|---------------------------|----------------|
-| Admin     | admin@scrapmate.dev       | Admin@123      |
-| Collector | collector1@scrapmate.dev  | Collector@123  |
-| Collector | collector2@scrapmate.dev  | Collector@123  |
-| Customer  | customer@scrapmate.dev    | Customer@123   |
+- **Booking.** One server function (`bookingService.createPickupForUser`) handles web, guest,
+  recurring, chat and admin bookings. It runs the serviceability and minimum checks, slot
+  capacity and cutoff, fraud checks, the server-side estimate and the coupon, then creates
+  the door code and auto-assigns the least-loaded nearby collector.
+- **Door code.** Customers see a 4-digit code; weighing is locked until the collector enters it.
+- **Weighing & payout.** The rate always comes from the admin price list (collector chooses
+  min/avg/max). The customer can accept or dispute; disputes block completion and open a
+  ticket. On completion: bonus = better of coupon or first-pickup bonus, plus loyalty and
+  business tier %. The payout goes to the wallet (transactional on replica sets), cash,
+  UPI or bank (RazorpayX). A PDF receipt is emailed.
+- **Roles & permissions.** Customers see only their data; collectors only their assigned
+  pickups; staff get role permissions (`support`, `operations`, `finance`); admins get all.
+  The AI assistant's tools enforce the same ownership checks.
+- **Realtime.** Socket.IO rooms per user, role and pickup carry status changes, collector
+  location (ETA) and notifications.
+- **Background jobs.** Recurring plans create pickups two days ahead (hourly job). Price
+  alerts fire whenever an admin changes a price.
 
-## 13. Deployment instructions
+## 11. Deployment
 
-- **Backend:** deploy to Render/Railway/Fly.io/EC2. Set all `backend/.env` variables in the
-  host's environment settings. Point `MONGODB_URI` at Atlas for production. Set `CLIENT_URL`
-  to your deployed frontend origin so CORS allows it.
-- **Frontend:** `npm run build` produces a static `dist/` folder — deploy it to
-  Vercel/Netlify/Cloudflare Pages, or serve it behind Nginx. Set `VITE_API_URL` to your
-  deployed backend's `/api` URL at build time.
-- Use a process manager (PM2) or the platform's built-in process supervision for the
-  backend in production, and always set `NODE_ENV=production`.
+- **Backend**: Render/Railway/Fly/EC2 or the Docker image. Set `NODE_ENV=production`, a long
+  random `JWT_SECRET`, `MONGODB_URI` (Atlas or a replica set), `CLIENT_URL` (your web origin),
+  `PUBLIC_API_URL`, and `TRUST_PROXY=1` behind a proxy. If the web app and API are on
+  different sites, use HTTPS and `COOKIE_SAMESITE=none`. Run a single API instance (or move
+  `services/jobs.js` to a worker) so recurring jobs don't run twice.
+- **Frontend**: `npm run build` → static `dist/` on Vercel/Netlify/Cloudflare/nginx with SPA
+  fallback. Set `VITE_API_URL` at build time. The nginx config in `frontend/` shows the
+  same-origin proxy setup.
+- Configure the Razorpay webhook URL as `https://<api>/api/payments/webhook`.
 
-## 14. Troubleshooting
+## 12. Troubleshooting
 
-- **"MongoDB connection error" on startup** — confirm MongoDB is running and `MONGODB_URI`
-  is correct. The server still boots so you can fix `.env` without restarting from scratch,
-  but every DB-backed route will 500 until it connects.
-- **CORS errors in the browser console** — make sure `CLIENT_URL` in `backend/.env` exactly
-  matches the URL the frontend is served from (including port).
-- **401 on every request after login** — check that cookies are enabled and that
-  `frontend`/`backend` are on `localhost` (or the same registrable domain) during
-  development, since the auth cookie is httpOnly + sameSite=lax.
-- **Rates page is empty** — run `npm run seed` in `backend/`; prices are city-specific, and
-  the seed script only populates "Bengaluru".
+- **Page shows a Tailwind "class does not exist" error** — restart `npm run dev` (Tailwind
+  loads its config at start-up).
+- **API calls fail / CORS errors** — `VITE_API_URL` must point at the API's port, and
+  `CLIENT_URL` must exactly match the web origin.
+- **OTP not received** — without an SMS provider the code is printed in the API console and
+  shown on screen outside production.
+- **`npm test` can't start MongoDB** — the first run downloads a MongoDB binary (~100 MB) into
+  `backend/node_modules/.cache`; it needs internet once.
+- **Rates page empty** — run `npm run seed`, or add prices for your city in Admin → Prices.
 
----
+## 13. Known limitations
 
-## Known limitations (be upfront about these before treating this as production-ready)
+Be upfront about these before treating ScrapMate as production-ready:
 
-- Payments: cash/UPI/bank transfer are recorded directly; the Razorpay path is architected
-  (order creation, verification endpoint, mock fallback) but not wired to the real Razorpay
-  SDK — that's a clearly marked integration point in `paymentController.js`.
-- Cloudinary image upload, Google Maps/Mapbox address autocomplete, Nodemailer emails, and
-  WhatsApp/SMS notifications are represented as mock/placeholder behavior (console logs)
-  rather than live integrations, per the "must run locally without paid services" requirement.
-- Automated tests cover the chat assistant only (backend). The booking -> weighing -> payment flow
-  and the frontend have no tests yet.
-- Chat assistant: AI mode is tested against a mocked SDK, not the live API. Topic analytics use
-  keyword classification, so they are approximate. Support hours and the WhatsApp number come from
-  env vars; admin-editable settings arrive with the CMS controls.
-- The assistant can't create bookings itself; it links into the booking wizard with items
-  prefilled. Time slots are a fixed list until admin-configurable slots are added.
-- On phones the floating buttons sit over page content while scrolling (the page gets extra bottom
-  padding so nothing is permanently hidden).
-- Admin category management (create/edit/deactivate categories) and file/photo upload for
-  collector pickup evidence are stubbed at the data-model level (fields exist) but don't yet
-  have dedicated UI screens.
-- Forgot-password is architected (endpoint + no-op mock email) but there's no actual reset
-  page yet since no email transport is configured.
-
-## Next recommended development steps
-
-1. Wire the real Razorpay SDK + webhook verification once you have sandbox keys.
-2. Add Cloudinary upload for collector pickup-evidence photos.
-3. Add admin UI for category CRUD (model + routes already support it).
-4. Add integration tests for the booking → weighing → payment flow.
-5. Add Google Maps/Mapbox autocomplete to the address step.
-6. Add pagination to admin tables (users/pickups) once data volume grows.
+- Third-party integrations (Razorpay/RazorpayX, Twilio/MSG91, WhatsApp Cloud API, Cloudinary,
+  Google Geocoding, web push, Anthropic) are implemented against their documented APIs but
+  were only exercised in mock/fallback mode here. Test each with sandbox keys before go-live.
+- The AI assistant was tested with the Anthropic SDK mocked, not against the live API.
+- Wallet operations are atomic per update but only fully transactional on a replica set
+  (Atlas or the Docker setup); a standalone local MongoDB runs them without transactions.
+- Background jobs run in-process (one API instance) rather than in a queue/worker.
+- Collector location is shared from the browser only while the route/job screen is open
+  (no native background tracking).
+- Offline weighing can't attach scale photos (uploads need a connection).
+- Hindi covers the customer-facing site; admin and collector screens are English (i18n-ready).
+- CO₂ figures use approximate per-item factors and are labelled as estimates.
+- Analytics "repeat customer rate" is all-time; other metrics follow the selected range.
+- Docker images are defined and the compose file validates, but were not built in the
+  development environment used here (Docker daemon not running); CI builds them.
+- Lighthouse scores were not measured; performance work done: route-level code splitting,
+  vendor chunking, API caching for rates, DB indexes, lazy images.

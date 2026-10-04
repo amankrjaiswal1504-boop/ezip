@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const auth = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 const { validate, z, phone, password } = require('../middleware/validate');
 
 const router = express.Router();
@@ -34,6 +34,8 @@ router.post('/login', strict, validate(z.object({ email, password: z.string().mi
 router.post('/refresh', auth.refresh);
 router.post('/logout', auth.logout);
 router.get('/me', protect, auth.me);
+// Like /me but 200 with user:null for visitors (no console errors on public pages).
+router.get('/session', optionalAuth, (req, res) => res.json({ success: true, data: { user: req.user ? req.user.toSafeObject() : null } }));
 
 router.post('/otp/request', strict, validate(z.object({ phone, purpose: z.enum(['login', 'booking']).optional() })), auth.requestOtp);
 router.post(

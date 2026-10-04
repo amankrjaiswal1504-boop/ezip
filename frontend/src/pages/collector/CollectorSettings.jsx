@@ -48,7 +48,6 @@ export default function CollectorSettings() {
     setStart(profile.workingHours?.start || '09:00');
     setEnd(profile.workingHours?.end || '19:00');
     setPins(profile.servicePinCodes || []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedKey]);
 
   const dirty = useMemo(

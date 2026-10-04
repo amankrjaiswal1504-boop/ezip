@@ -67,7 +67,6 @@ export default function Estimator({ compact = false, className }) {
       .then((res) => setResult(res.data.data))
       .catch(() => setResult(null))
       .finally(() => setBusy(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const update = (id, patch) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));

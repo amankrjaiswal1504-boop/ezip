@@ -23,7 +23,6 @@ export default function useApi(path, { params, enabled = true, deps = [] } = {})
     } finally {
       if (id === seq.current) setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, key, enabled, ...deps]);
 
   useEffect(() => {

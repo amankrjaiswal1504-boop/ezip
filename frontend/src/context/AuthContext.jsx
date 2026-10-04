@@ -9,7 +9,12 @@ export function AuthProvider({ children }) {
 
   const refreshMe = useCallback(async () => {
     try {
-      const res = await api.get('/auth/me');
+      let res = await api.get('/auth/session');
+      // Access cookie expired but a refresh cookie may still be valid.
+      if (!res.data.data.user) {
+        const refreshed = await api.post('/auth/refresh').catch(() => null);
+        if (refreshed?.data?.data?.user) res = { data: { data: { user: refreshed.data.data.user } } };
+      }
       setUser(res.data.data.user);
       return res.data.data.user;
     } catch {

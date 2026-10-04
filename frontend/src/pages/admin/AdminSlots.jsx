@@ -280,7 +280,6 @@ function Preview({ dirty }) {
   useEffect(() => {
     if (wasDirty.current && !dirty) res.reload();
     wasDirty.current = dirty;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty]);
   const d = res.data;
   return (

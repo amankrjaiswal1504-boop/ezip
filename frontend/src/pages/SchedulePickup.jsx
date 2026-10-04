@@ -134,7 +134,6 @@ export default function SchedulePickup() {
           .map(([itemId, qty, condition]) => ({ itemId, qty, condition: condition || 'working' }))
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Default address for logged-in customers.
@@ -173,7 +172,6 @@ export default function SchedulePickup() {
       })
       .then((res) => setEstimate(res.data.data))
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estKey]);
 
   const filteredRates = useMemo(() => {

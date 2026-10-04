@@ -42,7 +42,6 @@ export default function AdminPickups() {
   // Debounced search → URL.
   useEffect(() => {
     if (debounced !== f.search) update({ search: debounced.trim() });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 
   // Deep link from dispatch: ?search=SM-2025-000123 opens the pickup.
@@ -52,7 +51,6 @@ export default function AdminPickups() {
       autoOpened.current = true;
       setOpenId(f.search.toUpperCase());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const params = { page, limit: LIMIT, ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)) };

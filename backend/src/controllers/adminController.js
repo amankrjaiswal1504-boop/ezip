@@ -407,17 +407,14 @@ async function bulkPickups(req, res, next) {
       const collector = await User.findOne({ _id: collectorId, role: 'collector', isActive: true });
       if (!collector) return fail(res, 404, 'Collector not found');
       for (const p of pickups) {
-        // eslint-disable-next-line no-await-in-loop
         await assignTo(p, collector, req);
         done += 1;
       }
     } else if (action === 'auto-assign') {
       for (const p of pickups) {
-        // eslint-disable-next-line no-await-in-loop
         const c = await autoAssign(p);
         if (c) {
           done += 1;
-          // eslint-disable-next-line no-await-in-loop
           await pickupStatusChanged(p, { collectorName: c.name });
         }
       }
@@ -427,11 +424,8 @@ async function bulkPickups(req, res, next) {
         p.cancelReason = reason || 'Cancelled by ScrapMate';
         p.cancelledBy = 'admin';
         p.$locals.changedBy = req.user._id;
-        // eslint-disable-next-line no-await-in-loop
         await p.save();
-        // eslint-disable-next-line no-await-in-loop
         await releaseCoupon(p);
-        // eslint-disable-next-line no-await-in-loop
         await pickupStatusChanged(p);
         done += 1;
       }

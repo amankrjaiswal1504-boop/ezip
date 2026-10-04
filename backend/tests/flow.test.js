@@ -64,7 +64,6 @@ describe('auth', () => {
 
   it('locks the account after 5 wrong passwords', async () => {
     for (let i = 0; i < 5; i += 1) {
-      // eslint-disable-next-line no-await-in-loop
       const r = await request(app).post('/api/auth/login').send({ email: 'alice@test.dev', password: 'wrong-pass' });
       expect(r.status).toBe(401);
     }

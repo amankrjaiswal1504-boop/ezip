@@ -54,7 +54,6 @@ export default function CollectorRoute() {
       l.push([s.location.lat, s.location.lng]);
     });
     return { markers: m, line: l };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stops, hereKey, Boolean(position)]);
 
   const totalKm = (stops || []).reduce((sum, s) => sum + (s.legKm || 0), 0);

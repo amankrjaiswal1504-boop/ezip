@@ -19,8 +19,8 @@ api.interceptors.response.use(
         refreshing = refreshing || api.post('/auth/refresh').finally(() => {
           refreshing = null;
         });
-        await refreshing;
-        return api(original);
+        const r = await refreshing;
+        if (r?.data?.data?.user) return api(original);
       } catch {
         // fall through to the original error
       }

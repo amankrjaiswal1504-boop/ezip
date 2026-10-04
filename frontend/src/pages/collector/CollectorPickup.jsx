@@ -843,7 +843,7 @@ export default function CollectorPickup() {
           <MapPin className="w-4 h-4 text-steel-500 shrink-0 mt-0.5" aria-hidden />
           <span>
             {addressLine(a)}
-            {a.landmark ? <span className="block text-steel-500">Near {a.landmark}</span> : null}
+            {a.landmark ? <span className="block text-steel-500">{/^near\s/i.test(a.landmark) ? a.landmark : `Near ${a.landmark}`}</span> : null}
           </span>
         </p>
         <p className="mt-1.5 text-sm text-steel-700 flex items-center gap-1.5">

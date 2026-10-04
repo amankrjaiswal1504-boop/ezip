@@ -162,7 +162,6 @@ async function seed() {
   const collectors = [];
   for (let i = 0; i < CITIES.length + 1; i += 1) {
     const c = CITIES[i % CITIES.length];
-    // eslint-disable-next-line no-await-in-loop
     collectors.push(
       await User.create({
         name: collectorNames[i],
@@ -184,7 +183,6 @@ async function seed() {
   console.log('[seed] Creating categories, items and city prices (with history)...');
   const itemsByName = {};
   for (const [ci, cat] of CATEGORY_DATA.entries()) {
-    // eslint-disable-next-line no-await-in-loop
     const category = await ScrapCategory.create({
       name: cat.name,
       nameHi: cat.nameHi,
@@ -195,7 +193,6 @@ async function seed() {
       conditionGrading: Boolean(cat.conditionGrading),
     });
     for (const it of cat.items) {
-      // eslint-disable-next-line no-await-in-loop
       const item = await ScrapItem.create({
         category: category._id,
         name: it.name,
@@ -208,7 +205,6 @@ async function seed() {
       for (const c of CITIES) {
         const min = Math.max(1, r2(it.min * c.f));
         const max = Math.max(min, r2(it.max * c.f));
-        // eslint-disable-next-line no-await-in-loop
         const price = await ScrapPrice.create({ item: item._id, city: c.city, minPrice: min, maxPrice: max, recyclerPrice: r2(max * 1.18), updatedBy: admin._id });
         // Three earlier price points so the trends chart has a history.
         if (['Bengaluru', 'Delhi', 'Mumbai', 'Ghaziabad'].includes(c.city)) {
@@ -218,16 +214,12 @@ async function seed() {
           for (const [si, s] of steps.entries()) {
             const nm = Math.max(1, r2(min * s));
             const nx = Math.max(nm, r2(max * s));
-            // eslint-disable-next-line no-await-in-loop
             const h = await PriceHistory.create({ price: price._id, item: item._id, city: c.city, oldMinPrice: prevMin, oldMaxPrice: prevMax, newMinPrice: nm, newMaxPrice: nx, changedBy: admin._id });
-            // eslint-disable-next-line no-await-in-loop
             await PriceHistory.collection.updateOne({ _id: h._id }, { $set: { createdAt: daysAgo(150 - si * 45) } });
             prevMin = nm;
             prevMax = nx;
           }
-          // eslint-disable-next-line no-await-in-loop
           const last = await PriceHistory.create({ price: price._id, item: item._id, city: c.city, oldMinPrice: prevMin, oldMaxPrice: prevMax, newMinPrice: min, newMaxPrice: max, changedBy: admin._id });
-          // eslint-disable-next-line no-await-in-loop
           await PriceHistory.collection.updateOne({ _id: last._id }, { $set: { createdAt: daysAgo(10) } });
         }
       }
@@ -248,7 +240,6 @@ async function seed() {
   const extraNames = ['Ananya Rao', 'Farhan Shaikh', 'Priya Kulkarni', 'Rohit Verma', 'Meera Iyer', 'Arjun Nair'];
   const others = [];
   for (const [i, name] of extraNames.entries()) {
-    // eslint-disable-next-line no-await-in-loop
     others.push(await User.create({ name, email: `user${i + 1}@scrapmate.dev`, phone: `98888000${String(i).padStart(2, '0')}`, password: 'Customer@123', role: 'customer', referredBy: i < 3 ? customer._id : null, referralRewarded: i < 2 }));
   }
 
@@ -329,7 +320,6 @@ async function seed() {
   });
   for (const [hi, [user, addr, cityIdx, lines, ago, method]] of histories.entries()) {
     const c = CITIES[cityIdx];
-    // eslint-disable-next-line no-await-in-loop
     const a =
       addr ||
       (await Address.create({
@@ -348,7 +338,6 @@ async function seed() {
     const items = [];
     for (const [name, qty, cond] of lines) {
       const it = itemsByName[name];
-      // eslint-disable-next-line no-await-in-loop
       const price = await ScrapPrice.findOne({ item: it._id, city: c.city });
       const mult = { working: 1, not_working: 0.6, damaged: 0.35 }[cond] ?? 1;
       const rate = Math.round(((price.minPrice + price.maxPrice) / 2) * mult * 100) / 100;
@@ -361,7 +350,6 @@ async function seed() {
     const pickupId = `SM-2026-${String(seq).padStart(6, '0')}`;
     seq += 1;
     const bonus = hi === 0 ? Math.round(total * 0.05) : 0;
-    // eslint-disable-next-line no-await-in-loop
     const p = await Pickup.create({
       pickupId,
       customer: user._id,
@@ -387,14 +375,10 @@ async function seed() {
       coupon: hi === 0 ? { code: 'FIRST5', bonusAmount: bonus } : undefined,
       statusHistory: ['BOOKED', 'ASSIGNED', 'COLLECTOR_ON_THE_WAY', 'ARRIVED', 'WEIGHING', 'COMPLETED'].map((s, si) => ({ status: s, at: new Date(when.getTime() - (5 - si) * 3600000) })),
     });
-    // eslint-disable-next-line no-await-in-loop
     await Pickup.collection.updateOne({ _id: p._id }, { $set: { createdAt: new Date(when.getTime() - 2 * 86400000) } });
-    // eslint-disable-next-line no-await-in-loop
     await Payment.create({ paymentId: `PAY-SEED-${seq}`, pickup: p._id, user: user._id, amount: p.finalAmount + bonus, method, status: 'successful', isMock: true });
     if (method === 'wallet') {
-      // eslint-disable-next-line no-await-in-loop
       const u = await User.findByIdAndUpdate(user._id, { $inc: { walletBalance: p.finalAmount + bonus } }, { new: true });
-      // eslint-disable-next-line no-await-in-loop
       await WalletTransaction.create({ user: user._id, type: 'credit', amount: p.finalAmount + bonus, balanceAfter: u.walletBalance, reason: 'pickup_payout', reference: pickupId });
     }
     completed.push({ p, collector, user });
@@ -402,26 +386,19 @@ async function seed() {
 
   // Referral rewards that were already paid out.
   for (const u of others.slice(0, 2)) {
-    // eslint-disable-next-line no-await-in-loop
     const c = await User.findByIdAndUpdate(customer._id, { $inc: { walletBalance: 50 } }, { new: true });
-    // eslint-disable-next-line no-await-in-loop
     await WalletTransaction.create({ user: customer._id, type: 'credit', amount: 50, balanceAfter: c.walletBalance, reason: 'referral', reference: String(u._id), note: `Referred ${u.name}` });
   }
 
   console.log('[seed] Reviews, coupons, NGOs, FAQs, quotes, plans and alerts...');
   for (const [i, { p, collector, user }] of completed.entries()) {
     const [rating, comment] = REVIEWS[i % REVIEWS.length];
-    // eslint-disable-next-line no-await-in-loop
     const rev = await Review.create({ pickup: p._id, customer: user._id, collector: collector._id, rating, comment, status: i === completed.length - 1 ? 'pending' : 'approved', featured: i < 3 });
-    // eslint-disable-next-line no-await-in-loop
     await Pickup.updateOne({ _id: p._id }, { review: rev._id });
   }
   for (const col of collectors) {
-    // eslint-disable-next-line no-await-in-loop
     const agg = await Review.aggregate([{ $match: { collector: col._id, status: 'approved' } }, { $group: { _id: null, avg: { $avg: '$rating' }, n: { $sum: 1 } } }]);
-    // eslint-disable-next-line no-await-in-loop
     const done = await Pickup.countDocuments({ collector: col._id, status: 'COMPLETED' });
-    // eslint-disable-next-line no-await-in-loop
     await User.updateOne({ _id: col._id }, { 'collectorProfile.rating': agg[0] ? Math.round(agg[0].avg * 10) / 10 : 0, 'collectorProfile.ratingCount': agg[0]?.n || 0, 'collectorProfile.totalPickupsCompleted': done });
   }
 

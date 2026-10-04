@@ -161,7 +161,6 @@ async function applyWeighing(pickup, weighedItems, rateChoice) {
   for (const line of pickup.items) {
     const submitted = weighedItems.find((w) => w.itemName === line.itemName);
     if (!submitted) continue;
-    // eslint-disable-next-line no-await-in-loop
     const price = await ScrapPrice.findOne({ item: line.item, city, isActive: true });
     let rate = 0;
     if (price) {
@@ -203,16 +202,13 @@ async function syncOffline(req, res, next) {
   try {
     const results = [];
     for (const entry of req.body.entries) {
-      // eslint-disable-next-line no-await-in-loop
       const pickup = await Pickup.findOne({ pickupId: entry.pickupId.toUpperCase(), collector: req.user._id });
       if (!pickup) {
         results.push({ pickupId: entry.pickupId, ok: false, message: 'Not found' });
         continue;
       }
       try {
-        // eslint-disable-next-line no-await-in-loop
         await applyWeighing(pickup, entry.weighedItems, entry.rateChoice);
-        // eslint-disable-next-line no-await-in-loop
         await pickupStatusChanged(pickup);
         results.push({ pickupId: entry.pickupId, ok: true, finalAmount: pickup.finalAmount });
       } catch (err) {

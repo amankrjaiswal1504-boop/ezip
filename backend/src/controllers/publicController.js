@@ -59,7 +59,6 @@ async function slotCalendar(req, res, next) {
     const days = [];
     for (let i = 0; i <= cfg.maxDaysAhead; i += 1) {
       const date = addDays(today, i);
-      // eslint-disable-next-line no-await-in-loop
       const a = await getAvailability(date, { pinCode: req.query.pin });
       days.push({ date, open: a.open, reason: a.reason, freeSlots: a.slots.filter((s) => s.available).length });
     }
@@ -89,14 +88,15 @@ async function testimonials(req, res, next) {
   try {
     const reviews = await Review.find({ status: 'approved', comment: { $ne: '' } })
       .sort({ featured: -1, rating: -1, createdAt: -1 })
-      .limit(9)
+      .limit(30)
       .populate('customer', 'name')
       .populate('pickup', 'addressSnapshot.city')
       .lean();
     res.json({
       success: true,
       data: {
-        testimonials: reviews.map((r) => {
+        // One card per distinct comment, newest/featured first.
+        testimonials: reviews.filter((r, i, all) => all.findIndex((x) => x.comment.trim().toLowerCase() === r.comment.trim().toLowerCase()) === i).slice(0, 9).map((r) => {
           const [first, last] = (r.customer?.name || 'Customer').split(' ');
           return {
             id: r._id,
