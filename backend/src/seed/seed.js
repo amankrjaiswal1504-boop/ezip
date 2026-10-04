@@ -6,198 +6,489 @@ const User = require('../models/User');
 const ScrapCategory = require('../models/ScrapCategory');
 const ScrapItem = require('../models/ScrapItem');
 const ScrapPrice = require('../models/ScrapPrice');
+const PriceHistory = require('../models/PriceHistory');
 const Address = require('../models/Address');
 const Pickup = require('../models/Pickup');
+const Payment = require('../models/Payment');
 const Faq = require('../models/Faq');
 const ChatSession = require('../models/ChatSession');
 const ChatMessage = require('../models/ChatMessage');
 const SupportTicket = require('../models/SupportTicket');
+const platform = require('../models/platform');
 
-const CITY = 'Bengaluru';
+const { ServiceArea, Coupon, Ngo, Review, WalletTransaction, RecurringPlan, PriceAlert, Quote, AnalyticsEvent, Setting } = platform;
+
+// city -> price multiplier, state, centre, PIN codes served
+const CITIES = [
+  { city: 'Bengaluru', state: 'Karnataka', f: 1.0, center: [12.9716, 77.5946], pins: ['560001', '560008', '560034', '560038', '560066', '560076', '560095', '560102'] },
+  { city: 'Delhi', state: 'Delhi', f: 1.03, center: [28.6139, 77.209], pins: ['110001', '110017', '110019', '110024', '110048', '110085', '110092'] },
+  { city: 'Ghaziabad', state: 'Uttar Pradesh', f: 1.0, center: [28.6692, 77.4538], pins: ['201001', '201002', '201010', '201012', '201014', '201017'] },
+  { city: 'Noida', state: 'Uttar Pradesh', f: 1.01, center: [28.5355, 77.391], pins: ['201301', '201303', '201304', '201307', '201310'] },
+  { city: 'Gurugram', state: 'Haryana', f: 1.02, center: [28.4595, 77.0266], pins: ['122001', '122002', '122003', '122011', '122018'] },
+  { city: 'Mumbai', state: 'Maharashtra', f: 1.05, center: [19.076, 72.8777], pins: ['400001', '400050', '400053', '400058', '400070', '400076', '400097'] },
+  { city: 'Hyderabad', state: 'Telangana', f: 0.98, center: [17.385, 78.4867], pins: ['500001', '500016', '500032', '500034', '500081', '500084'] },
+  { city: 'Chennai', state: 'Tamil Nadu', f: 0.99, center: [13.0827, 80.2707], pins: ['600017', '600020', '600028', '600040', '600042', '600096'] },
+  { city: 'Pune', state: 'Maharashtra', f: 1.02, center: [18.5204, 73.8567], pins: ['411001', '411004', '411014', '411038', '411045', '411057'] },
+  { city: 'Kolkata', state: 'West Bengal', f: 0.97, center: [22.5726, 88.3639], pins: ['700001', '700019', '700029', '700064', '700091', '700156'] },
+];
 
 const CATEGORY_DATA = [
   {
     name: 'Normal Recyclables',
+    nameHi: 'सामान्य रीसायकल',
+    icon: 'recycle',
+    description: 'Paper, cardboard, plastic, metals, glass and clothes',
     items: [
-      { name: 'Newspaper', unit: 'kg', min: 12, max: 14 },
-      { name: 'Cardboard', unit: 'kg', min: 8, max: 10 },
-      { name: 'Office Paper', unit: 'kg', min: 10, max: 12 },
-      { name: 'Books', unit: 'kg', min: 8, max: 10 },
-      { name: 'Plastic', unit: 'kg', min: 6, max: 9 },
-      { name: 'Iron', unit: 'kg', min: 18, max: 22 },
-      { name: 'Steel', unit: 'kg', min: 20, max: 25 },
-      { name: 'Aluminium', unit: 'kg', min: 100, max: 120 },
-      { name: 'Aluminium Can', unit: 'kg', min: 90, max: 110 },
-      { name: 'Brass', unit: 'kg', min: 280, max: 320 },
-      { name: 'Copper', unit: 'kg', min: 480, max: 550 },
-      { name: 'Glass', unit: 'kg', min: 1, max: 2 },
-      { name: 'Clothes', unit: 'kg', min: 4, max: 6 },
+      { name: 'Newspaper', nameHi: 'अखबार', unit: 'kg', min: 12, max: 14, co2: 1.0 },
+      { name: 'Cardboard', nameHi: 'गत्ता', unit: 'kg', min: 8, max: 10, co2: 0.9 },
+      { name: 'Office Paper', nameHi: 'ऑफिस पेपर', unit: 'kg', min: 10, max: 12, co2: 1.0 },
+      { name: 'Books', nameHi: 'किताबें', unit: 'kg', min: 8, max: 10, co2: 0.9 },
+      { name: 'Plastic', nameHi: 'प्लास्टिक', unit: 'kg', min: 6, max: 9, co2: 1.5 },
+      { name: 'Iron', nameHi: 'लोहा', unit: 'kg', min: 18, max: 22, co2: 1.5 },
+      { name: 'Steel', nameHi: 'स्टील', unit: 'kg', min: 20, max: 25, co2: 1.6 },
+      { name: 'Aluminium', nameHi: 'एल्युमिनियम', unit: 'kg', min: 100, max: 120, co2: 9 },
+      { name: 'Aluminium Can', nameHi: 'एल्युमिनियम कैन', unit: 'kg', min: 90, max: 110, co2: 9 },
+      { name: 'Brass', nameHi: 'पीतल', unit: 'kg', min: 280, max: 320, co2: 3 },
+      { name: 'Copper', nameHi: 'तांबा', unit: 'kg', min: 480, max: 550, co2: 3.5 },
+      { name: 'Glass', nameHi: 'कांच', unit: 'kg', min: 1, max: 2, co2: 0.3 },
+      { name: 'Clothes', nameHi: 'कपड़े', unit: 'kg', min: 4, max: 6, co2: 3 },
     ],
   },
   {
     name: 'E-Waste',
+    nameHi: 'ई-कचरा',
+    icon: 'ewaste',
+    conditionGrading: true,
+    description: 'Laptops, computers, monitors, printers, TVs and gadgets',
     items: [
-      { name: 'Laptop', unit: 'piece', min: 200, max: 600 },
-      { name: 'Desktop CPU', unit: 'piece', min: 150, max: 400 },
-      { name: 'Monitor', unit: 'piece', min: 80, max: 250 },
-      { name: 'Printer', unit: 'piece', min: 60, max: 200 },
-      { name: 'Scanner', unit: 'piece', min: 40, max: 120 },
-      { name: 'Television', unit: 'piece', min: 150, max: 500 },
-      { name: 'Tablet', unit: 'piece', min: 50, max: 200 },
-      { name: 'Other Electronic Waste', unit: 'kg', min: 20, max: 60 },
+      { name: 'Laptop', nameHi: 'लैपटॉप', unit: 'piece', min: 200, max: 600, co2: 30, kg: 2.5 },
+      { name: 'Desktop CPU', nameHi: 'डेस्कटॉप CPU', unit: 'piece', min: 150, max: 400, co2: 40, kg: 8 },
+      { name: 'Monitor', nameHi: 'मॉनिटर', unit: 'piece', min: 80, max: 250, co2: 25, kg: 5 },
+      { name: 'Printer', nameHi: 'प्रिंटर', unit: 'piece', min: 60, max: 200, co2: 15, kg: 6 },
+      { name: 'Scanner', nameHi: 'स्कैनर', unit: 'piece', min: 40, max: 120, co2: 10, kg: 4 },
+      { name: 'Television', nameHi: 'टीवी', unit: 'piece', min: 150, max: 500, co2: 60, kg: 15 },
+      { name: 'Tablet', nameHi: 'टैबलेट', unit: 'piece', min: 50, max: 200, co2: 8, kg: 0.5 },
+      { name: 'Other Electronic Waste', nameHi: 'अन्य ई-कचरा', unit: 'kg', min: 20, max: 60, co2: 12 },
     ],
   },
   {
     name: 'Appliances',
+    nameHi: 'घरेलू उपकरण',
+    icon: 'appliance',
+    conditionGrading: true,
+    description: 'Fridges, washing machines, ACs, coolers and more',
     items: [
-      { name: 'Refrigerator', unit: 'piece', min: 500, max: 1200 },
-      { name: 'Washing Machine', unit: 'piece', min: 400, max: 1000 },
-      { name: 'Microwave', unit: 'piece', min: 100, max: 300 },
-      { name: 'Air Conditioner', unit: 'piece', min: 600, max: 1500 },
-      { name: 'Cooler', unit: 'piece', min: 150, max: 400 },
-      { name: 'Fan', unit: 'piece', min: 60, max: 150 },
-      { name: 'Geyser', unit: 'piece', min: 150, max: 400 },
-      { name: 'UPS', unit: 'piece', min: 100, max: 300 },
-      { name: 'Inverter', unit: 'piece', min: 200, max: 500 },
-      { name: 'Other Appliances', unit: 'piece', min: 50, max: 200 },
+      { name: 'Refrigerator', nameHi: 'फ्रिज', unit: 'piece', min: 500, max: 1200, co2: 150, kg: 45 },
+      { name: 'Washing Machine', nameHi: 'वॉशिंग मशीन', unit: 'piece', min: 400, max: 1000, co2: 100, kg: 35 },
+      { name: 'Microwave', nameHi: 'माइक्रोवेव', unit: 'piece', min: 100, max: 300, co2: 20, kg: 12 },
+      { name: 'Air Conditioner', nameHi: 'एसी', unit: 'piece', min: 600, max: 1500, co2: 120, kg: 40 },
+      { name: 'Cooler', nameHi: 'कूलर', unit: 'piece', min: 150, max: 400, co2: 25, kg: 15 },
+      { name: 'Fan', nameHi: 'पंखा', unit: 'piece', min: 60, max: 150, co2: 6, kg: 4 },
+      { name: 'Geyser', nameHi: 'गीज़र', unit: 'piece', min: 150, max: 400, co2: 20, kg: 12 },
+      { name: 'UPS', nameHi: 'यूपीएस', unit: 'piece', min: 100, max: 300, co2: 15, kg: 10 },
+      { name: 'Inverter', nameHi: 'इन्वर्टर', unit: 'piece', min: 200, max: 500, co2: 30, kg: 15 },
+      { name: 'Other Appliances', nameHi: 'अन्य उपकरण', unit: 'piece', min: 50, max: 200, co2: 15, kg: 8 },
     ],
   },
   {
     name: 'Vehicle Scrap',
+    nameHi: 'वाहन स्क्रैप',
+    icon: 'vehicle',
+    description: 'Old bikes, scooters and cars (with RC for deregistration)',
     items: [
-      { name: 'Bike', unit: 'piece', min: 1500, max: 4000 },
-      { name: 'Scooter', unit: 'piece', min: 1500, max: 4000 },
-      { name: 'Car', unit: 'piece', min: 15000, max: 40000 },
+      { name: 'Bike', nameHi: 'बाइक', unit: 'piece', min: 1500, max: 4000, co2: 300, kg: 100 },
+      { name: 'Scooter', nameHi: 'स्कूटर', unit: 'piece', min: 1500, max: 4000, co2: 250, kg: 90 },
+      { name: 'Car', nameHi: 'कार', unit: 'piece', min: 15000, max: 40000, co2: 2000, kg: 900 },
     ],
   },
 ];
 
 const FAQ_DATA = [
-  { topic: 'pricing', question: 'Is the price I see final?', answer: 'No. Rates shown are indicative ranges. The final amount is calculated from the actual weight and condition verified at your door, using the admin-set rate for your city.', keywords: ['final', 'price', 'rate', 'exact'] },
+  { topic: 'pricing', question: 'Is the price I see final?', answer: 'No. Rates shown are indicative ranges. The final amount is calculated from the actual weight and condition verified at your door, using the ScrapMate rate for your city.', keywords: ['final', 'price', 'rate', 'exact'] },
   { topic: 'pickup', question: 'Is pickup free?', answer: 'Yes. Doorstep pickup is free for every scrap category we support.', keywords: ['free', 'charge', 'fee', 'cost'] },
-  { topic: 'payment', question: 'How do I get paid?', answer: 'Choose cash, UPI or bank transfer once the collector has weighed your scrap. The payment is recorded and a digital receipt is generated straight away.', keywords: ['payment', 'paid', 'upi', 'cash', 'bank', 'money'] },
-  { topic: 'payment', question: 'I have not received my payment. What should I do?', answer: 'Open the pickup in your dashboard to check the payment status. If it shows completed but you have not received the money, contact support on WhatsApp with your pickup ID and we will sort it out.', keywords: ['not received', 'missing', 'pending', 'refund'] },
-  { topic: 'pickup', question: 'Is there a minimum quantity for pickup?', answer: 'We accept most household quantities. For very small loads the collector may suggest combining with your next pickup. Large or commercial quantities are welcome too.', keywords: ['minimum', 'small', 'quantity', 'weight'] },
-  { topic: 'pickup', question: 'Can I cancel or reschedule a pickup?', answer: 'Yes. You can cancel any pickup before it is completed, and reschedule it until the collector is on the way. Use your pickup page or ask the chat assistant.', keywords: ['cancel', 'reschedule', 'change', 'date'] },
-  { topic: 'weighing', question: 'How is my scrap weighed?', answer: 'The collector weighs each item at your door on a digital scale in front of you and enters the weight in the app. The rate is fixed by ScrapMate and cannot be changed by the collector.', keywords: ['weigh', 'scale', 'weight', 'collector'] },
-  { topic: 'account', question: 'I forgot my password.', answer: 'Use the "Forgot password" option on the login page. If you still cannot sign in, contact support on WhatsApp.', keywords: ['password', 'forgot', 'login', 'reset'] },
+  { topic: 'payment', question: 'How do I get paid?', answer: 'Choose cash, UPI, bank transfer or your ScrapMate wallet once the collector has weighed your scrap. A digital receipt is generated straight away.', keywords: ['payment', 'paid', 'upi', 'cash', 'bank', 'money', 'wallet'] },
+  { topic: 'payment', question: 'I have not received my payment. What should I do?', answer: 'Open the pickup in your dashboard to check the payment status. UPI and bank payouts usually arrive within minutes. If it shows paid but you have not received it, contact support on WhatsApp with your pickup ID.', keywords: ['not received', 'missing', 'pending', 'refund'] },
+  { topic: 'pickup', question: 'Is there a minimum quantity for pickup?', answer: 'Most areas have a small minimum (shown when you book). Large or commercial quantities are welcome too: use the Business page for a bulk quote.', keywords: ['minimum', 'small', 'quantity', 'weight'] },
+  { topic: 'pickup', question: 'Can I cancel or reschedule a pickup?', answer: 'Yes. You can reschedule up to 4 hours before your slot, and cancel any time before the collector arrives, from your pickup page or by asking the chat assistant.', keywords: ['cancel', 'reschedule', 'change', 'date'] },
+  { topic: 'weighing', question: 'How is my scrap weighed?', answer: 'The collector weighs each item on a digital scale in front of you and photographs the scale reading. You can review the amount and accept or dispute it before payment.', keywords: ['weigh', 'scale', 'weight', 'collector', 'dispute'] },
+  { topic: 'safety', question: 'Why do I get a 4-digit code?', answer: 'For your safety, the collector must enter the 4-digit code shown on your pickup page before weighing can start. Only share it with the collector at your door.', keywords: ['otp', 'code', 'pin', 'safety', 'verify'] },
+  { topic: 'account', question: 'I forgot my password.', answer: 'Use "Forgot password" on the login page, or simply log in with your phone number and a one-time code.', keywords: ['password', 'forgot', 'login', 'reset'] },
   { topic: 'items', question: 'What items do you not accept?', answer: 'We do not collect hazardous waste (chemicals, medical waste, asbestos), food waste or wet garbage.', keywords: ['not accept', 'hazardous', 'reject', 'garbage'] },
+  { topic: 'business', question: 'Do you work with shops, offices and societies?', answer: 'Yes. Business accounts get recurring pickups, GST invoices, dedicated pricing tiers and certified e-waste disposal certificates. Request a quote on the Business page.', keywords: ['business', 'office', 'shop', 'society', 'bulk', 'gst'] },
+  { topic: 'donation', question: 'Can I donate instead of selling?', answer: 'Yes. Choose "Donate" when booking and pick one of our partner NGOs. You will get a donation certificate after pickup.', keywords: ['donate', 'ngo', 'charity', 'donation'] },
+];
+
+const NGOS = [
+  { name: 'Green Threads Foundation', description: 'Reuses clothes and textiles for families in need.', accepts: ['normal-recyclables'], registrationNumber: 'NGO/KA/2015/0042' },
+  { name: 'Books For All Trust', description: 'Builds community libraries in government schools.', accepts: ['normal-recyclables'], registrationNumber: 'NGO/DL/2012/0187' },
+  { name: 'Digital Bridge Society', description: 'Refurbishes old laptops and phones for students.', accepts: ['e-waste'], registrationNumber: 'NGO/MH/2018/0311' },
+];
+
+const REVIEWS = [
+  [5, 'Collector came on time, weighed everything in front of me and the UPI payment arrived before he left.'],
+  [5, 'Sold an old fridge and AC in one pickup. The estimate was very close to the final amount.'],
+  [4, 'Smooth process. Liked that I could see the photo of the scale reading on my receipt.'],
+  [5, 'Our society now does a monthly pickup. The GST invoice makes accounting easy.'],
+  [4, 'Booked in Hindi through the chat assistant, very convenient for my parents.'],
+  [5, 'Got the e-waste certificate for our office within minutes of the pickup.'],
 ];
 
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
+const r2 = (n) => Math.round(n);
+const daysAgo = (n) => new Date(Date.now() - n * 86400000);
+const jitter = ([lat, lng], spread = 0.04) => ({ lat: lat + (Math.random() - 0.5) * spread, lng: lng + (Math.random() - 0.5) * spread });
 
 async function seed() {
   await connectDB();
   console.log('[seed] Clearing existing data...');
-  await Promise.all([
-    User.deleteMany({}),
-    ScrapCategory.deleteMany({}),
-    ScrapItem.deleteMany({}),
-    ScrapPrice.deleteMany({}),
-    Address.deleteMany({}),
-    Pickup.deleteMany({}),
-    Faq.deleteMany({}),
-    ChatSession.deleteMany({}),
-    ChatMessage.deleteMany({}),
-    SupportTicket.deleteMany({}),
+  const models = [User, ScrapCategory, ScrapItem, ScrapPrice, PriceHistory, Address, Pickup, Payment, Faq, ChatSession, ChatMessage, SupportTicket, ...Object.values(platform)];
+  await Promise.all(models.map((m) => m.deleteMany({})));
+
+  console.log('[seed] Creating staff and admin accounts (DEVELOPMENT / DEMO credentials)...');
+  const admin = await User.create({ name: 'Admin User', email: 'admin@scrapmate.dev', phone: '9999900000', password: 'Admin@123', role: 'admin' });
+  await User.create([
+    { name: 'Sana Support', email: 'support@scrapmate.dev', phone: '9999900010', password: 'Staff@123', role: 'staff', staffRole: 'support' },
+    { name: 'Omar Operations', email: 'ops@scrapmate.dev', phone: '9999900011', password: 'Staff@123', role: 'staff', staffRole: 'operations' },
+    { name: 'Farah Finance', email: 'finance@scrapmate.dev', phone: '9999900012', password: 'Staff@123', role: 'staff', staffRole: 'finance' },
   ]);
 
-  console.log('[seed] Creating users (DEVELOPMENT / DEMO credentials)...');
-  const admin = await User.create({
-    name: 'Admin User',
-    email: 'admin@scrapmate.dev',
-    phone: '9999900000',
-    password: 'Admin@123',
-    role: 'admin',
-  });
+  console.log('[seed] Creating service areas and collectors...');
+  await ServiceArea.insertMany(
+    CITIES.map((c) => ({ city: c.city, state: c.state, pinCodes: c.pins, minPickupWeightKg: 5, minPickupValue: 50, center: { lat: c.center[0], lng: c.center[1] } }))
+  );
+  const collectorNames = ['Ramesh Kumar', 'Suresh Babu', 'Imran Shaikh', 'Vijay Yadav', 'Anil Gowda', 'Prakash Rao', 'Deepak Singh', 'Manoj Das', 'Karthik R', 'Sanjay Patil', 'Rakesh Paul'];
+  const collectors = [];
+  for (let i = 0; i < CITIES.length + 1; i += 1) {
+    const c = CITIES[i % CITIES.length];
+    // eslint-disable-next-line no-await-in-loop
+    collectors.push(
+      await User.create({
+        name: collectorNames[i],
+        email: `collector${i + 1}@scrapmate.dev`,
+        phone: `99999001${String(i).padStart(2, '0')}`,
+        password: 'Collector@123',
+        role: 'collector',
+        collectorProfile: {
+          city: c.city,
+          vehicleNumber: `${c.state.slice(0, 2).toUpperCase()}-0${i + 1}-AB-${1000 + i * 37}`,
+          servicePinCodes: c.pins,
+          location: { ...jitter(c.center), updatedAt: new Date() },
+          isAvailable: true,
+        },
+      })
+    );
+  }
 
-  const collector1 = await User.create({
-    name: 'Ramesh Kumar',
-    email: 'collector1@scrapmate.dev',
-    phone: '9999900001',
-    password: 'Collector@123',
-    role: 'collector',
-    collectorProfile: { city: CITY, vehicleNumber: 'KA-01-AB-1234' },
-  });
-
-  const collector2 = await User.create({
-    name: 'Suresh Babu',
-    email: 'collector2@scrapmate.dev',
-    phone: '9999900002',
-    password: 'Collector@123',
-    role: 'collector',
-    collectorProfile: { city: CITY, vehicleNumber: 'KA-01-CD-5678' },
-  });
-
-  const customer = await User.create({
-    name: 'Demo Customer',
-    email: 'customer@scrapmate.dev',
-    phone: '9999900003',
-    password: 'Customer@123',
-    role: 'customer',
-  });
-
-  console.log('[seed] Creating scrap categories, items and prices...');
-  for (const cat of CATEGORY_DATA) {
+  console.log('[seed] Creating categories, items and city prices (with history)...');
+  const itemsByName = {};
+  for (const [ci, cat] of CATEGORY_DATA.entries()) {
+    // eslint-disable-next-line no-await-in-loop
     const category = await ScrapCategory.create({
       name: cat.name,
+      nameHi: cat.nameHi,
       slug: slugify(cat.name),
+      icon: cat.icon,
+      description: cat.description,
+      sortOrder: ci,
+      conditionGrading: Boolean(cat.conditionGrading),
     });
     for (const it of cat.items) {
+      // eslint-disable-next-line no-await-in-loop
       const item = await ScrapItem.create({
         category: category._id,
         name: it.name,
+        nameHi: it.nameHi,
         unit: it.unit,
+        co2PerUnit: it.co2,
+        kgPerUnit: it.kg || 1,
       });
-      await ScrapPrice.create({
-        item: item._id,
-        city: CITY,
-        minPrice: it.min,
-        maxPrice: it.max,
-        updatedBy: admin._id,
-      });
+      itemsByName[it.name] = item;
+      for (const c of CITIES) {
+        const min = Math.max(1, r2(it.min * c.f));
+        const max = Math.max(min, r2(it.max * c.f));
+        // eslint-disable-next-line no-await-in-loop
+        const price = await ScrapPrice.create({ item: item._id, city: c.city, minPrice: min, maxPrice: max, recyclerPrice: r2(max * 1.18), updatedBy: admin._id });
+        // Three earlier price points so the trends chart has a history.
+        if (['Bengaluru', 'Delhi', 'Mumbai', 'Ghaziabad'].includes(c.city)) {
+          const steps = [0.9, 0.95, 0.97];
+          let prevMin;
+          let prevMax;
+          for (const [si, s] of steps.entries()) {
+            const nm = Math.max(1, r2(min * s));
+            const nx = Math.max(nm, r2(max * s));
+            // eslint-disable-next-line no-await-in-loop
+            const h = await PriceHistory.create({ price: price._id, item: item._id, city: c.city, oldMinPrice: prevMin, oldMaxPrice: prevMax, newMinPrice: nm, newMaxPrice: nx, changedBy: admin._id });
+            // eslint-disable-next-line no-await-in-loop
+            await PriceHistory.collection.updateOne({ _id: h._id }, { $set: { createdAt: daysAgo(150 - si * 45) } });
+            prevMin = nm;
+            prevMax = nx;
+          }
+          // eslint-disable-next-line no-await-in-loop
+          const last = await PriceHistory.create({ price: price._id, item: item._id, city: c.city, oldMinPrice: prevMin, oldMaxPrice: prevMax, newMinPrice: min, newMaxPrice: max, changedBy: admin._id });
+          // eslint-disable-next-line no-await-in-loop
+          await PriceHistory.collection.updateOne({ _id: last._id }, { $set: { createdAt: daysAgo(10) } });
+        }
+      }
     }
   }
 
-  console.log('[seed] Creating a sample address and pickup...');
+  console.log('[seed] Creating customers, addresses and pickups...');
+  const customer = await User.create({ name: 'Demo Customer', email: 'customer@scrapmate.dev', phone: '9999900003', password: 'Customer@123', role: 'customer', referralCode: 'DEMO50' });
+  const business = await User.create({
+    name: 'Priya Mehta',
+    email: 'business@scrapmate.dev',
+    phone: '9999900004',
+    password: 'Business@123',
+    role: 'customer',
+    accountType: 'business',
+    business: { companyName: 'Sunrise Apartments RWA', businessType: 'society', gstin: '29ABCDE1234F1Z5', billingAddress: 'Indiranagar, Bengaluru 560038', pricingTier: 'silver' },
+  });
+  const extraNames = ['Ananya Rao', 'Farhan Shaikh', 'Priya Kulkarni', 'Rohit Verma', 'Meera Iyer', 'Arjun Nair'];
+  const others = [];
+  for (const [i, name] of extraNames.entries()) {
+    // eslint-disable-next-line no-await-in-loop
+    others.push(await User.create({ name, email: `user${i + 1}@scrapmate.dev`, phone: `98888000${String(i).padStart(2, '0')}`, password: 'Customer@123', role: 'customer', referredBy: i < 3 ? customer._id : null, referralRewarded: i < 2 }));
+  }
+
   const address = await Address.create({
     user: customer._id,
     houseNumber: '221B',
     street: 'MG Road',
     locality: 'Indiranagar',
-    city: CITY,
+    city: 'Bengaluru',
     state: 'Karnataka',
     pinCode: '560038',
     landmark: 'Near Metro Station',
     addressType: 'home',
     isDefault: true,
+    location: { lat: 12.9784, lng: 77.6408 },
+  });
+  const bizAddress = await Address.create({
+    user: business._id,
+    houseNumber: 'Clubhouse',
+    street: '100 Feet Road',
+    locality: 'Indiranagar',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pinCode: '560038',
+    isDefault: true,
+    location: { lat: 12.9719, lng: 77.6412 },
   });
 
-  const ironItem = await ScrapItem.findOne({ name: 'Iron' });
+  const mkItems = (lines, weighed) =>
+    lines.map(([name, qty, cond]) => {
+      const it = itemsByName[name];
+      const rate = 0;
+      return {
+        item: it._id,
+        itemName: it.name,
+        unit: it.unit,
+        estimatedQuantity: qty,
+        condition: cond || null,
+        ...(weighed ? { actualWeight: qty, rateApplied: rate, subtotal: 0 } : {}),
+      };
+    });
+
+  // Upcoming pickup for the demo customer (assigned).
   await Pickup.create({
     pickupId: 'SM-2026-000001',
     customer: customer._id,
-    collector: collector1._id,
-    items: [{ item: ironItem._id, itemName: 'Iron', estimatedQuantity: 10 }],
+    collector: collectors[0]._id,
+    items: mkItems([['Iron', 10], ['Newspaper', 15]]),
     address: address._id,
     addressSnapshot: address.toObject(),
-    scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    timeSlot: '10:00 AM - 12:00 PM',
+    pinCode: '560038',
+    location: address.location,
+    scheduledDate: new Date(`${new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10)}T00:00:00.000Z`),
+    timeSlot: '11:00 AM - 1:00 PM',
     contactPhone: customer.phone,
-    estimatedValueMin: 180,
-    estimatedValueMax: 220,
+    estimatedValueMin: 360,
+    estimatedValueMax: 430,
     status: 'ASSIGNED',
+    otp: '4321',
+    statusHistory: [
+      { status: 'BOOKED', at: daysAgo(1) },
+      { status: 'ASSIGNED', at: daysAgo(1) },
+    ],
   });
 
-  console.log('[seed] Creating FAQs for the chat assistant...');
+  // Completed history across customers & cities, with payments and reviews.
+  let seq = 2;
+  const completed = [];
+  const histories = [
+    [customer, address, 0, [['Newspaper', 18], ['Cardboard', 9], ['Iron', 6]], 40, 'upi'],
+    [customer, address, 0, [['Laptop', 1, 'not_working'], ['Monitor', 2, 'working']], 22, 'wallet'],
+    [business, bizAddress, 0, [['Cardboard', 85], ['Plastic', 30], ['Office Paper', 40]], 15, 'bank_transfer'],
+    [business, bizAddress, 0, [['Desktop CPU', 4, 'not_working'], ['Printer', 2, 'damaged'], ['Other Electronic Waste', 12]], 8, 'bank_transfer'],
+  ];
+  others.forEach((u, i) => {
+    const c = CITIES[(i + 1) % CITIES.length];
+    histories.push([u, null, (i + 1) % CITIES.length, [['Newspaper', 10 + i * 3], ['Aluminium', 2 + i], ['Copper', 1]], 5 + i * 4, ['cash', 'upi', 'wallet'][i % 3], c]);
+  });
+  for (const [hi, [user, addr, cityIdx, lines, ago, method]] of histories.entries()) {
+    const c = CITIES[cityIdx];
+    // eslint-disable-next-line no-await-in-loop
+    const a =
+      addr ||
+      (await Address.create({
+        user: user._id,
+        houseNumber: `${12 + hi}`,
+        street: 'Main Road',
+        locality: 'Central',
+        city: c.city,
+        state: c.state,
+        pinCode: c.pins[hi % c.pins.length],
+        isDefault: true,
+        location: jitter(c.center),
+      }));
+    const collector = collectors.find((col) => col.collectorProfile.city === c.city) || collectors[0];
+    let total = 0;
+    const items = [];
+    for (const [name, qty, cond] of lines) {
+      const it = itemsByName[name];
+      // eslint-disable-next-line no-await-in-loop
+      const price = await ScrapPrice.findOne({ item: it._id, city: c.city });
+      const mult = { working: 1, not_working: 0.6, damaged: 0.35 }[cond] ?? 1;
+      const rate = Math.round(((price.minPrice + price.maxPrice) / 2) * mult * 100) / 100;
+      const actual = it.unit === 'kg' ? Math.round(qty * (0.9 + Math.random() * 0.2) * 10) / 10 : qty;
+      const subtotal = Math.round(actual * rate * 100) / 100;
+      total += subtotal;
+      items.push({ item: it._id, itemName: it.name, unit: it.unit, estimatedQuantity: qty, condition: cond || null, actualWeight: actual, rateApplied: rate, subtotal });
+    }
+    const when = daysAgo(ago);
+    const pickupId = `SM-2026-${String(seq).padStart(6, '0')}`;
+    seq += 1;
+    const bonus = hi === 0 ? Math.round(total * 0.05) : 0;
+    // eslint-disable-next-line no-await-in-loop
+    const p = await Pickup.create({
+      pickupId,
+      customer: user._id,
+      collector: collector._id,
+      items,
+      address: a._id,
+      addressSnapshot: a.toObject(),
+      pinCode: a.pinCode,
+      location: a.location,
+      scheduledDate: new Date(`${when.toISOString().slice(0, 10)}T00:00:00.000Z`),
+      timeSlot: '9:00 AM - 11:00 AM',
+      contactPhone: user.phone,
+      estimatedValueMin: Math.round(total * 0.85),
+      estimatedValueMax: Math.round(total * 1.15),
+      finalAmount: Math.round(total * 100) / 100,
+      bonusAmount: bonus,
+      status: 'COMPLETED',
+      otp: '1234',
+      otpVerifiedAt: when,
+      completedAt: when,
+      customerDecision: { status: 'accepted', at: when },
+      payout: { method, status: 'paid', reference: `PAY-SEED-${seq}`, paidAt: when, upiId: method === 'upi' ? 'demo@okaxis' : undefined },
+      coupon: hi === 0 ? { code: 'FIRST5', bonusAmount: bonus } : undefined,
+      statusHistory: ['BOOKED', 'ASSIGNED', 'COLLECTOR_ON_THE_WAY', 'ARRIVED', 'WEIGHING', 'COMPLETED'].map((s, si) => ({ status: s, at: new Date(when.getTime() - (5 - si) * 3600000) })),
+    });
+    // eslint-disable-next-line no-await-in-loop
+    await Pickup.collection.updateOne({ _id: p._id }, { $set: { createdAt: new Date(when.getTime() - 2 * 86400000) } });
+    // eslint-disable-next-line no-await-in-loop
+    await Payment.create({ paymentId: `PAY-SEED-${seq}`, pickup: p._id, user: user._id, amount: p.finalAmount + bonus, method, status: 'successful', isMock: true });
+    if (method === 'wallet') {
+      // eslint-disable-next-line no-await-in-loop
+      const u = await User.findByIdAndUpdate(user._id, { $inc: { walletBalance: p.finalAmount + bonus } }, { new: true });
+      // eslint-disable-next-line no-await-in-loop
+      await WalletTransaction.create({ user: user._id, type: 'credit', amount: p.finalAmount + bonus, balanceAfter: u.walletBalance, reason: 'pickup_payout', reference: pickupId });
+    }
+    completed.push({ p, collector, user });
+  }
+
+  // Referral rewards that were already paid out.
+  for (const u of others.slice(0, 2)) {
+    // eslint-disable-next-line no-await-in-loop
+    const c = await User.findByIdAndUpdate(customer._id, { $inc: { walletBalance: 50 } }, { new: true });
+    // eslint-disable-next-line no-await-in-loop
+    await WalletTransaction.create({ user: customer._id, type: 'credit', amount: 50, balanceAfter: c.walletBalance, reason: 'referral', reference: String(u._id), note: `Referred ${u.name}` });
+  }
+
+  console.log('[seed] Reviews, coupons, NGOs, FAQs, quotes, plans and alerts...');
+  for (const [i, { p, collector, user }] of completed.entries()) {
+    const [rating, comment] = REVIEWS[i % REVIEWS.length];
+    // eslint-disable-next-line no-await-in-loop
+    const rev = await Review.create({ pickup: p._id, customer: user._id, collector: collector._id, rating, comment, status: i === completed.length - 1 ? 'pending' : 'approved', featured: i < 3 });
+    // eslint-disable-next-line no-await-in-loop
+    await Pickup.updateOne({ _id: p._id }, { review: rev._id });
+  }
+  for (const col of collectors) {
+    // eslint-disable-next-line no-await-in-loop
+    const agg = await Review.aggregate([{ $match: { collector: col._id, status: 'approved' } }, { $group: { _id: null, avg: { $avg: '$rating' }, n: { $sum: 1 } } }]);
+    // eslint-disable-next-line no-await-in-loop
+    const done = await Pickup.countDocuments({ collector: col._id, status: 'COMPLETED' });
+    // eslint-disable-next-line no-await-in-loop
+    await User.updateOne({ _id: col._id }, { 'collectorProfile.rating': agg[0] ? Math.round(agg[0].avg * 10) / 10 : 0, 'collectorProfile.ratingCount': agg[0]?.n || 0, 'collectorProfile.totalPickupsCompleted': done });
+  }
+
+  await Coupon.insertMany([
+    { code: 'FIRST5', description: '+5% on your first pickup', type: 'percent', value: 5, maxBonus: 200, firstPickupOnly: true, perUserLimit: 1 },
+    { code: 'BULK50', description: '+₹50 on pickups of 50 kg or more', type: 'flat', value: 50, minWeightKg: 50, perUserLimit: 5 },
+    { code: 'DIWALI10', description: 'Festival bonus: +10% (max ₹300)', type: 'percent', value: 10, maxBonus: 300, perUserLimit: 1, validTo: new Date(Date.now() + 45 * 86400000) },
+    { code: 'EWASTE100', description: '+₹100 when you recycle e-waste worth ₹500+', type: 'flat', value: 100, minOrderValue: 500, perUserLimit: 2 },
+  ]);
+  await Ngo.insertMany(NGOS);
   await Faq.insertMany(FAQ_DATA.map((f, i) => ({ ...f, order: i })));
+  await Quote.create({
+    quoteId: 'QT-SEED-0001',
+    customer: business._id,
+    contactName: business.name,
+    companyName: business.business.companyName,
+    phone: business.phone,
+    email: business.email,
+    city: 'Bengaluru',
+    gstin: business.business.gstin,
+    businessType: 'society',
+    description: 'Monthly cardboard and plastic from 240 flats, plus old office electronics once a quarter.',
+    estimatedQuantityKg: 600,
+    wantsCertificate: true,
+    status: 'quoted',
+    quotedAmount: 0,
+    adminNote: 'Silver tier pricing (+3%), monthly pickup on the first Saturday.',
+  });
+  await Quote.create({ quoteId: 'QT-SEED-0002', contactName: 'Vikram Shah', companyName: 'Shah Kirana Store', phone: '9876500011', city: 'Ghaziabad', businessType: 'kirana', description: 'About 150 kg of cartons every week.', estimatedQuantityKg: 150 });
+  await RecurringPlan.create({
+    customer: business._id,
+    address: bizAddress._id,
+    items: [{ item: itemsByName.Cardboard._id, estimatedQuantity: 80 }, { item: itemsByName.Plastic._id, estimatedQuantity: 25 }],
+    frequency: 'monthly',
+    dayOfMonth: 5,
+    timeSlot: '9:00 AM - 11:00 AM',
+    contactPhone: business.phone,
+    nextRunDate: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 5)),
+  });
+  await PriceAlert.create({ user: customer._id, item: itemsByName.Copper._id, city: 'Bengaluru', direction: 'above', threshold: 560 });
+
+  console.log('[seed] Sample chat tickets and analytics events...');
+  const session = await ChatSession.create({ user: customer._id, escalated: true, language: 'en', messageCount: 2, lastUserMessage: 'My payment for the last pickup is showing pending' });
+  await ChatMessage.create([
+    { session: session._id, role: 'user', content: 'My payment for the last pickup is showing pending', topic: 'payment' },
+    { session: session._id, role: 'assistant', content: "I'm sorry for the trouble. I've passed this to our support team (ticket **TKT-SEED-0001**).", mode: 'system', escalated: true },
+  ]);
+  await SupportTicket.create([
+    { ticketId: 'TKT-SEED-0001', user: customer._id, session: session._id, summary: 'Customer says UPI payout for SM-2026-000002 shows pending.', reason: 'user_request', pickupId: 'SM-2026-000002' },
+    { ticketId: 'TKT-SEED-0002', summary: 'Anonymous visitor asked about bulk e-waste pickup from a factory in Pune.', reason: 'assistant_handoff', status: 'in_progress' },
+  ]);
+  const events = [];
+  for (let d = 0; d < 30; d += 1) {
+    const visits = 40 + Math.round(Math.random() * 30);
+    for (let v = 0; v < visits; v += 1) events.push({ type: 'visit', createdAt: daysAgo(d) });
+    for (let e = 0; e < Math.round(visits * 0.35); e += 1) events.push({ type: 'estimate', createdAt: daysAgo(d) });
+    for (let b = 0; b < Math.round(visits * 0.12); b += 1) events.push({ type: 'booking_started', createdAt: daysAgo(d) });
+  }
+  await AnalyticsEvent.insertMany(events);
+  await Setting.deleteMany({});
 
   console.log('\n[seed] Done! Demo credentials (DEVELOPMENT ONLY):');
-  console.log('  Admin:     admin@scrapmate.dev / Admin@123');
-  console.log('  Collector: collector1@scrapmate.dev / Collector@123');
-  console.log('  Customer:  customer@scrapmate.dev / Customer@123\n');
+  console.log('  Admin:      admin@scrapmate.dev / Admin@123');
+  console.log('  Staff:      support@ / ops@ / finance@scrapmate.dev / Staff@123');
+  console.log('  Collectors: collector1..11@scrapmate.dev / Collector@123  (collector1 = Bengaluru)');
+  console.log('  Customer:   customer@scrapmate.dev / Customer@123  (or phone 9999900003 + OTP)');
+  console.log('  Business:   business@scrapmate.dev / Business@123\n');
 
   await mongoose.connection.close();
   process.exit(0);
