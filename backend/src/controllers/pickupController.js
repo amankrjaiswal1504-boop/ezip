@@ -1,7 +1,7 @@
 const Pickup = require('../models/Pickup');
 const Address = require('../models/Address');
-const ScrapItem = require('../models/ScrapItem');
-const ScrapPrice = require('../models/ScrapPrice');
+const { estimateItems } = require('../services/rateService');
+const { cancelCustomerPickup, PickupActionError } = require('../services/pickupService');
 const { generatePickupId } = require('../utils/generateId');
 
 // STEP 1-9 of the schedule-pickup flow are handled client-side as a wizard;
@@ -19,26 +19,18 @@ async function createPickup(req, res, next) {
       return res.status(404).json({ success: false, message: 'Address not found' });
     }
 
-    let estimatedValueMin = 0;
-    let estimatedValueMax = 0;
-    const resolvedItems = [];
-
-    for (const entry of items) {
-      const item = await ScrapItem.findById(entry.itemId);
-      if (!item) continue;
-      const price = await ScrapPrice.findOne({ item: item._id, city: city || address.city, isActive: true });
-      const qty = Number(entry.estimatedQuantity) || 0;
-      const min = price ? price.minPrice * qty : 0;
-      const max = price ? price.maxPrice * qty : 0;
-      estimatedValueMin += min;
-      estimatedValueMax += max;
-
-      resolvedItems.push({
-        item: item._id,
-        itemName: item.name,
-        estimatedQuantity: qty,
-      });
+    const estimate = await estimateItems(
+      items.map((entry) => ({ itemId: entry.itemId, estimatedQuantity: entry.estimatedQuantity })),
+      city || address.city
+    );
+    if (!estimate.lines.length) {
+      return res.status(400).json({ success: false, message: 'None of the selected items exist' });
     }
+    const resolvedItems = estimate.lines.map((l) => ({
+      item: l.item._id,
+      itemName: l.item.name,
+      estimatedQuantity: l.quantity,
+    }));
 
     const pickupId = await generatePickupId();
 
@@ -51,8 +43,8 @@ async function createPickup(req, res, next) {
       scheduledDate,
       timeSlot,
       contactPhone,
-      estimatedValueMin,
-      estimatedValueMax,
+      estimatedValueMin: estimate.min,
+      estimatedValueMax: estimate.max,
       status: 'BOOKED',
     });
 
@@ -91,16 +83,12 @@ async function getPickup(req, res, next) {
 
 async function cancelPickup(req, res, next) {
   try {
-    const pickup = await Pickup.findOne({ pickupId: req.params.id, customer: req.user._id });
-    if (!pickup) return res.status(404).json({ success: false, message: 'Pickup not found' });
-    if (['COMPLETED', 'CANCELLED'].includes(pickup.status)) {
-      return res.status(400).json({ success: false, message: `Cannot cancel a pickup that is ${pickup.status}` });
-    }
-    pickup.status = 'CANCELLED';
-    pickup.cancelReason = req.body.reason || 'Cancelled by customer';
-    await pickup.save();
+    const pickup = await cancelCustomerPickup(req.user, req.params.id, req.body.reason);
     res.json({ success: true, data: { pickup } });
   } catch (err) {
+    if (err instanceof PickupActionError) {
+      return res.status(err.status).json({ success: false, message: err.message });
+    }
     next(err);
   }
 }
