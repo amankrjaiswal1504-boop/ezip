@@ -1,6 +1,8 @@
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_secret';
 process.env.CHAT_RATE_LIMIT_PER_MIN = '1000';
+process.env.AUTH_RATE_LIMIT = '1000';
+process.env.API_RATE_LIMIT = '100000';
 
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
@@ -13,6 +15,8 @@ const Pickup = require('../src/models/Pickup');
 const Faq = require('../src/models/Faq');
 const { signToken } = require('../src/utils/jwt');
 const { resetCatalogCache } = require('../src/services/chat/catalog');
+const { clearRateCache } = require('../src/services/rateService');
+const settings = require('../src/services/settingsService');
 
 let mongo;
 
@@ -30,22 +34,43 @@ async function resetDb() {
   const collections = await mongoose.connection.db.collections();
   await Promise.all(collections.map((c) => c.deleteMany({})));
   resetCatalogCache();
+  clearRateCache();
+  settings.clearCache();
 }
 
-// Minimal world: two customers, an admin, a few priced items, one pickup owned by Alice.
+// YYYY-MM-DD n days from today (IST).
+function dayFromNow(n) {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+  const d = new Date(`${today}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Minimal world: two customers, an admin, a collector, a few priced items, one pickup owned by Alice.
 async function seedBasics() {
-  const admin = await User.create({ name: 'Admin', email: 'admin@test.dev', phone: '1', password: 'secret12', role: 'admin' });
-  const alice = await User.create({ name: 'Alice Rao', email: 'alice@test.dev', phone: '2', password: 'secret12' });
-  const bob = await User.create({ name: 'Bob Das', email: 'bob@test.dev', phone: '3', password: 'secret12' });
+  const admin = await User.create({ name: 'Admin', email: 'admin@test.dev', phone: '9000000001', password: 'secret12', role: 'admin' });
+  const alice = await User.create({ name: 'Alice Rao', email: 'alice@test.dev', phone: '9000000002', password: 'secret12' });
+  const bob = await User.create({ name: 'Bob Das', email: 'bob@test.dev', phone: '9000000003', password: 'secret12' });
+  const collector = await User.create({
+    name: 'Ravi Collector',
+    email: 'ravi@test.dev',
+    phone: '9000000004',
+    password: 'secret12',
+    role: 'collector',
+    collectorProfile: { city: 'Bengaluru', servicePinCodes: ['560038'], location: { lat: 12.97, lng: 77.64 } },
+  });
 
   const metals = await ScrapCategory.create({ name: 'Normal Recyclables', slug: 'normal-recyclables' });
-  const copper = await ScrapItem.create({ category: metals._id, name: 'Copper', unit: 'kg' });
-  const newspaper = await ScrapItem.create({ category: metals._id, name: 'Newspaper', unit: 'kg' });
-  const fridge = await ScrapItem.create({ category: metals._id, name: 'Refrigerator', unit: 'piece' });
+  const ewaste = await ScrapCategory.create({ name: 'E-Waste', slug: 'e-waste', conditionGrading: true });
+  const copper = await ScrapItem.create({ category: metals._id, name: 'Copper', unit: 'kg', co2PerUnit: 3.5 });
+  const newspaper = await ScrapItem.create({ category: metals._id, name: 'Newspaper', unit: 'kg', co2PerUnit: 1 });
+  const fridge = await ScrapItem.create({ category: metals._id, name: 'Refrigerator', unit: 'piece', kgPerUnit: 45 });
+  const laptop = await ScrapItem.create({ category: ewaste._id, name: 'Laptop', unit: 'piece', kgPerUnit: 2.5 });
   await ScrapPrice.create([
-    { item: copper._id, city: 'Bengaluru', minPrice: 480, maxPrice: 550 },
-    { item: newspaper._id, city: 'Bengaluru', minPrice: 12, maxPrice: 14 },
+    { item: copper._id, city: 'Bengaluru', minPrice: 480, maxPrice: 550, recyclerPrice: 600 },
+    { item: newspaper._id, city: 'Bengaluru', minPrice: 12, maxPrice: 14, recyclerPrice: 17 },
     { item: fridge._id, city: 'Bengaluru', minPrice: 500, maxPrice: 1200 },
+    { item: laptop._id, city: 'Bengaluru', minPrice: 200, maxPrice: 600 },
     { item: copper._id, city: 'Pune', minPrice: 470, maxPrice: 540 },
   ]);
 
@@ -58,6 +83,7 @@ async function seedBasics() {
     state: 'Karnataka',
     pinCode: '560038',
     isDefault: true,
+    location: { lat: 12.978, lng: 77.64 },
   });
   const pickup = await Pickup.create({
     pickupId: 'SM-2026-000001',
@@ -65,12 +91,14 @@ async function seedBasics() {
     items: [{ item: newspaper._id, itemName: 'Newspaper', estimatedQuantity: 10 }],
     address: address._id,
     addressSnapshot: address.toObject(),
-    scheduledDate: new Date(Date.now() + 2 * 86400000),
+    pinCode: '560038',
+    scheduledDate: new Date(`${dayFromNow(2)}T00:00:00.000Z`),
     timeSlot: '9:00 AM - 11:00 AM',
-    contactPhone: '2',
+    contactPhone: '9000000002',
     estimatedValueMin: 120,
     estimatedValueMax: 140,
     status: 'BOOKED',
+    otp: '1111',
   });
   await Faq.create({
     topic: 'payment',
@@ -80,9 +108,9 @@ async function seedBasics() {
   });
   await Faq.syncIndexes();
 
-  return { admin, alice, bob, copper, newspaper, fridge, pickup };
+  return { admin, alice, bob, collector, copper, newspaper, fridge, laptop, pickup, address };
 }
 
 const bearer = (user) => `Bearer ${signToken(user)}`;
 
-module.exports = { startDb, stopDb, resetDb, seedBasics, bearer };
+module.exports = { startDb, stopDb, resetDb, seedBasics, bearer, dayFromNow };
