@@ -22,6 +22,24 @@ async function protect(req, res, next) {
   }
 }
 
+// Attaches req.user when a valid token is present; never rejects the request.
+async function optionalAuth(req, res, next) {
+  try {
+    let token = req.cookies?.[COOKIE_NAME];
+    if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+    if (token) {
+      const decoded = verifyToken(token);
+      const user = await User.findById(decoded.id);
+      if (user && user.isActive) req.user = user;
+    }
+  } catch (err) {
+    // invalid/expired token: continue as anonymous
+  }
+  next();
+}
+
 function authorize(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -31,4 +49,4 @@ function authorize(...roles) {
   };
 }
 
-module.exports = { protect, authorize };
+module.exports = { protect, optionalAuth, authorize };

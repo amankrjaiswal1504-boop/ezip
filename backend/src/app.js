@@ -15,6 +15,7 @@ const pickupRoutes = require('./routes/pickupRoutes');
 const collectorRoutes = require('./routes/collectorRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -25,7 +26,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
 
@@ -47,6 +48,7 @@ app.use('/api/pickups', pickupRoutes);
 app.use('/api/collector', collectorRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

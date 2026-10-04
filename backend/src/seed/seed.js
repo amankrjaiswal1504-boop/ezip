@@ -8,6 +8,10 @@ const ScrapItem = require('../models/ScrapItem');
 const ScrapPrice = require('../models/ScrapPrice');
 const Address = require('../models/Address');
 const Pickup = require('../models/Pickup');
+const Faq = require('../models/Faq');
+const ChatSession = require('../models/ChatSession');
+const ChatMessage = require('../models/ChatMessage');
+const SupportTicket = require('../models/SupportTicket');
 
 const CITY = 'Bengaluru';
 
@@ -68,6 +72,18 @@ const CATEGORY_DATA = [
   },
 ];
 
+const FAQ_DATA = [
+  { topic: 'pricing', question: 'Is the price I see final?', answer: 'No. Rates shown are indicative ranges. The final amount is calculated from the actual weight and condition verified at your door, using the admin-set rate for your city.', keywords: ['final', 'price', 'rate', 'exact'] },
+  { topic: 'pickup', question: 'Is pickup free?', answer: 'Yes. Doorstep pickup is free for every scrap category we support.', keywords: ['free', 'charge', 'fee', 'cost'] },
+  { topic: 'payment', question: 'How do I get paid?', answer: 'Choose cash, UPI or bank transfer once the collector has weighed your scrap. The payment is recorded and a digital receipt is generated straight away.', keywords: ['payment', 'paid', 'upi', 'cash', 'bank', 'money'] },
+  { topic: 'payment', question: 'I have not received my payment. What should I do?', answer: 'Open the pickup in your dashboard to check the payment status. If it shows completed but you have not received the money, contact support on WhatsApp with your pickup ID and we will sort it out.', keywords: ['not received', 'missing', 'pending', 'refund'] },
+  { topic: 'pickup', question: 'Is there a minimum quantity for pickup?', answer: 'We accept most household quantities. For very small loads the collector may suggest combining with your next pickup. Large or commercial quantities are welcome too.', keywords: ['minimum', 'small', 'quantity', 'weight'] },
+  { topic: 'pickup', question: 'Can I cancel or reschedule a pickup?', answer: 'Yes. You can cancel any pickup before it is completed, and reschedule it until the collector is on the way. Use your pickup page or ask the chat assistant.', keywords: ['cancel', 'reschedule', 'change', 'date'] },
+  { topic: 'weighing', question: 'How is my scrap weighed?', answer: 'The collector weighs each item at your door on a digital scale in front of you and enters the weight in the app. The rate is fixed by ScrapMate and cannot be changed by the collector.', keywords: ['weigh', 'scale', 'weight', 'collector'] },
+  { topic: 'account', question: 'I forgot my password.', answer: 'Use the "Forgot password" option on the login page. If you still cannot sign in, contact support on WhatsApp.', keywords: ['password', 'forgot', 'login', 'reset'] },
+  { topic: 'items', question: 'What items do you not accept?', answer: 'We do not collect hazardous waste (chemicals, medical waste, asbestos), food waste or wet garbage.', keywords: ['not accept', 'hazardous', 'reject', 'garbage'] },
+];
+
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -82,6 +98,10 @@ async function seed() {
     ScrapPrice.deleteMany({}),
     Address.deleteMany({}),
     Pickup.deleteMany({}),
+    Faq.deleteMany({}),
+    ChatSession.deleteMany({}),
+    ChatMessage.deleteMany({}),
+    SupportTicket.deleteMany({}),
   ]);
 
   console.log('[seed] Creating users (DEVELOPMENT / DEMO credentials)...');
@@ -170,6 +190,9 @@ async function seed() {
     estimatedValueMax: 220,
     status: 'ASSIGNED',
   });
+
+  console.log('[seed] Creating FAQs for the chat assistant...');
+  await Faq.insertMany(FAQ_DATA.map((f, i) => ({ ...f, order: i })));
 
   console.log('\n[seed] Done! Demo credentials (DEVELOPMENT ONLY):');
   console.log('  Admin:     admin@scrapmate.dev / Admin@123');

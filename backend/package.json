@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed": "node src/seed/seed.js"
+    "seed": "node src/seed/seed.js",
+    "test": "jest --runInBand"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.2.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -19,10 +22,19 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.0",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
-    "cloudinary": "^2.2.0"
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^11.3.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^7.3.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 60000,
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
   }
 }
