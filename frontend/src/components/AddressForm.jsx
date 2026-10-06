@@ -7,7 +7,14 @@ import { Button, Field, Input, Select, cx } from './ui';
 import MapView from './MapView';
 import { useI18n } from '../i18n/I18nContext';
 
-const EMPTY = { houseNumber: '', street: '', locality: '', city: '', state: '', pinCode: '', landmark: '', addressType: 'home', location: null };
+const COUNTRIES = {
+  IN: { label: 'India', stateLabel: 'State', postalLabel: 'PIN code', len: 6 },
+  NP: { label: 'Nepal', stateLabel: 'Province', postalLabel: 'Postal code', len: 5 },
+};
+const NP_PROVINCES = ['Koshi', 'Madhesh', 'Bagmati', 'Gandaki', 'Lumbini', 'Karnali', 'Sudurpashchim'];
+const matchProvince = (s = '') => NP_PROVINCES.find((p) => s.toLowerCase().includes(p.toLowerCase())) || '';
+
+const EMPTY = { country: 'IN', district: '', ward: '', houseNumber: '', street: '', locality: '', city: '', state: '', pinCode: '', landmark: '', addressType: 'home', location: null };
 
 // Address entry with search autocomplete (Google / OpenStreetMap via the API),
 // "use my location", a draggable map pin, and a live serviceability check.
@@ -24,6 +31,8 @@ export default function AddressForm({ initial, onSubmit, onCancel, submitLabel =
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const cfg = COUNTRIES[form.country] || COUNTRIES.IN;
+
   useEffect(() => {
     if (q.trim().length < 3) {
       setResults([]);
@@ -38,7 +47,7 @@ export default function AddressForm({ initial, onSubmit, onCancel, submitLabel =
   }, [q]);
 
   useEffect(() => {
-    if (!/^\d{6}$/.test(form.pinCode)) {
+    if (!form.pinCode.length === cfg.len) {
       setService(null);
       return;
     }
@@ -46,7 +55,7 @@ export default function AddressForm({ initial, onSubmit, onCancel, submitLabel =
       .get('/public/serviceability', { params: { pin: form.pinCode, city: form.city } })
       .then((res) => setService(res.data.data))
       .catch(() => setService(null));
-  }, [form.pinCode, form.city]);
+  }, [form.pinCode, form.city, cfg.len]);
 
   function applyGeo(g) {
     setForm((f) => ({
@@ -55,8 +64,11 @@ export default function AddressForm({ initial, onSubmit, onCancel, submitLabel =
       street: g.street || f.street,
       locality: g.locality || f.locality,
       city: g.city || f.city,
-      state: g.state || f.state,
-      pinCode: g.pinCode || f.pinCode,
+
+      country: COUNTRIES[g.country] ? g.country : f.country,
+      state: (COUNTRIES[g.country] ? g.country : f.country) === 'NP' ? matchProvince(g.state) || f.state : g.state || f.state,
+      district: g.district || f.district,      pinCode: g.pinCode || f.pinCode,
+
       location: g.lat != null ? { lat: g.lat, lng: g.lng } : f.location,
     }));
   }
@@ -94,13 +106,16 @@ export default function AddressForm({ initial, onSubmit, onCancel, submitLabel =
     if (!form.locality.trim()) e.locality = 'Required';
     if (!form.city.trim()) e.city = 'Required';
     if (!form.state.trim()) e.state = 'Required';
-    if (!/^\d{6}$/.test(form.pinCode)) e.pinCode = 'Enter a 6-digit PIN code';
-    setErrors(e);
+
+    if (form.pinCode.length !== cfg.len) e.pinCode = `Enter a ${cfg.len}-digit ${cfg.postalLabel.toLowerCase()}`;    setErrors(e);
     return !Object.keys(e).length;
   }
 
   return (
     <form
+
+
+
       onSubmit={(e) => {
         e.preventDefault();
         if (validate()) onSubmit({ ...form, location: form.location || undefined });
@@ -108,6 +123,14 @@ export default function AddressForm({ initial, onSubmit, onCancel, submitLabel =
       className="space-y-4"
       noValidate
     >
+
+      <Field label="Country">
+        {(id) => (
+          <Select id={id} value={form.country} onChange={(e) => setForm((f) => ({ ...f, country: e.target.value, state: '', pinCode: '' }))}>
+            {Object.entries(COUNTRIES).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
+          </Select>
+        )}
+      </Field>
       <div className="relative">
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -162,12 +185,29 @@ export default function AddressForm({ initial, onSubmit, onCancel, submitLabel =
         <Field label="City" required error={errors.city}>
           {(id) => <Input id={id} value={form.city} onChange={(e) => set('city', e.target.value)} invalid={!!errors.city} autoComplete="address-level2" />}
         </Field>
-        <Field label="State" required error={errors.state}>
-          {(id) => <Input id={id} value={form.state} onChange={(e) => set('state', e.target.value)} invalid={!!errors.state} autoComplete="address-level1" />}
+
+
+        <Field label={cfg.stateLabel} required error={errors.state}>
+          {(id) => form.country === 'NP' ? (
+            <Select id={id} value={form.state} onChange={(e) => set('state', e.target.value)}>
+              <option value="">Select province</option>
+              {NP_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </Select>
+          ) : (
+            <Input id={id} value={form.state} onChange={(e) => set('state', e.target.value)} invalid={!!errors.state} autoComplete="address-level1" />
+          )}
         </Field>
+
+          {form.country === 'NP' && (
+            <>
+              <Field label="District">{(id) => <Input id={id} value={form.district} onChange={(e) => set('district', e.target.value)} />}</Field>
+              <Field label="Ward no.">{(id) => <Input id={id} value={form.ward} inputMode="numeric" maxLength={2} onChange={(e) => set('ward', e.target.value.replace(/\D/g, ''))} />}</Field>
+            </>
+          )}
+
         <Field label="PIN code" required error={errors.pinCode}>
           {(id) => (
-            <Input id={id} value={form.pinCode} inputMode="numeric" maxLength={6} onChange={(e) => set('pinCode', e.target.value.replace(/\D/g, ''))} invalid={!!errors.pinCode} autoComplete="postal-code" />
+            <Input id={id} value={form.pinCode} inputMode="numeric" maxLength={cfg.len} onChange={(e) => set('pinCode', e.target.value.replace(/\D/g, ''))} invalid={!!errors.pinCode} autoComplete="postal-code" />
           )}
         </Field>
         <Field label="Address type">

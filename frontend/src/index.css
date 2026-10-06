@@ -5,55 +5,63 @@
 /* ---------- Design tokens (R G B triplets) ---------- */
 :root {
   color-scheme: light;
-  --steel-50: 247 246 242;
-  --steel-100: 236 234 227;
-  --steel-200: 222 219 210;
-  --steel-300: 190 194 198;
-  --steel-400: 141 149 157;
-  --steel-500: 99 108 117;
-  --steel-600: 79 87 96;
-  --steel-700: 61 67 74;
-  --steel-800: 45 49 54;
-  --steel-900: 35 38 43;
-  --steel-950: 22 24 27;
 
-  --rust-50: 252 243 237;
-  --rust-100: 246 223 209;
-  --rust-200: 236 191 166;
-  --rust-500: 189 91 53;
-  --rust-600: 164 74 42;
-  --rust-700: 138 58 33;
-  --rust-800: 110 45 25;
+  /* Classic Green / Vintage Neutral */
+  --steel-50: 248 247 241;
+  --steel-100: 238 237 226;
+  --steel-200: 220 221 204;
+  --steel-300: 190 195 174;
+  --steel-400: 143 151 126;
+  --steel-500: 103 113 88;
+  --steel-600: 78 91 68;
+  --steel-700: 59 73 53;
+  --steel-800: 43 57 42;
+  --steel-900: 31 45 34;
+  --steel-950: 20 31 24;
 
-  --patina-50: 240 246 241;
-  --patina-100: 220 232 222;
-  --patina-200: 189 212 194;
-  --patina-500: 82 125 92;
-  --patina-600: 61 104 72;
-  --patina-700: 47 84 57;
-  --patina-800: 36 64 44;
+  /* Muted Classic Green */
+  --rust-50: 241 246 238;
+  --rust-100: 218 230 211;
+  --rust-200: 187 207 181;
+  --rust-500: 76 119 76;
+  --rust-600: 60 101 63;
+  --rust-700: 47 82 51;
+  --rust-800: 37 64 41;
 
-  --amber-50: 254 248 235;
-  --amber-100: 252 236 200;
-  --amber-600: 180 110 12;
-  --amber-700: 140 84 8;
+  /* Sage / Patina */
+  --patina-50: 239 245 237;
+  --patina-100: 215 228 211;
+  --patina-200: 184 204 180;
+  --patina-500: 91 124 91;
+  --patina-600: 70 105 72;
+  --patina-700: 53 86 57;
+  --patina-800: 40 67 45;
 
-  --danger-50: 254 242 241;
-  --danger-100: 252 222 219;
-  --danger-600: 196 48 43;
-  --danger-700: 160 34 30;
+  /* Warm Olive / Brass Accent */
+  --amber-50: 249 247 232;
+  --amber-100: 235 232 195;
+  --amber-600: 139 126 52;
+  --amber-700: 106 95 35;
 
-  --surface: 255 255 255;
-  --surface-2: 250 249 246;
-  --ink: 28 31 34;
-  --ink-2: 40 44 49;
+  /* Muted Red */
+  --danger-50: 250 241 238;
+  --danger-100: 239 216 209;
+  --danger-600: 166 67 55;
+  --danger-700: 137 49 40;
 
-  /* Chart palette (validated: CVD-safe pair, >=3:1 on the surface) */
-  --viz-1: 180 83 46;
-  --viz-2: 47 109 181;
-  --viz-grid: 228 225 216;
+  /* Surfaces */
+  --surface: 253 252 247;
+  --surface-2: 245 245 236;
+
+  /* Text */
+  --ink: 28 39 30;
+  --ink-2: 43 54 44;
+
+  /* Chart palette */
+  --viz-1: 67 111 70;
+  --viz-2: 126 119 55;
+  --viz-grid: 218 219 204;
 }
-
 .dark {
   color-scheme: dark;
   --steel-50: 17 19 22;

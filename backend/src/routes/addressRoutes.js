@@ -6,6 +6,11 @@ const { validate, z, pinCode, objectId } = require('../middleware/validate');
 const router = express.Router();
 
 const address = z.object({
+  country: z.enum(['IN', 'NP']).optional(),
+  district: z.string().trim().max(60).optional(),
+  ward: z.string().trim().max(10).optional(),
+  
+
   houseNumber: z.string().trim().min(1, 'House / flat number is required').max(60),
   street: z.string().trim().min(1, 'Street is required').max(120),
   locality: z.string().trim().min(1, 'Locality is required').max(120),

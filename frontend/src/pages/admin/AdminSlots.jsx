@@ -273,7 +273,7 @@ function SlotsEditor({ initial, onSaved }) {
 function Preview({ dirty }) {
   const [date, setDate] = useState(todayISO());
   const [pin, setPin] = useState('');
-  const params = /^\d{6}$/.test(pin) ? { date, pin } : { date };
+  const params = /^\d{5,6}$/.test(pin) ? { date, pin } : { date };
   const res = useApi('/public/slots', { params, enabled: Boolean(date) });
   // Re-check after a save so the preview reflects new settings.
   const wasDirty = useRef(dirty);
@@ -287,11 +287,11 @@ function Preview({ dirty }) {
       <SectionTitle title="Availability preview" subtitle="What customers see for a date, using saved settings." />
       <div className="grid grid-cols-2 gap-3">
         <Field label="Date">{(id) => <Input id={id} type="date" value={date} onChange={(ev) => setDate(ev.target.value)} />}</Field>
-        <Field label="PIN code" hint={pin && !/^\d{6}$/.test(pin) ? '6 digits' : 'Optional'}>
+        <Field label="PIN code" hint={pin && !/^\d{5,6}$/.test(pin) ? '6 digits' : 'Optional'}>
           {(id) => <Input id={id} inputMode="numeric" maxLength={6} value={pin} onChange={(ev) => setPin(ev.target.value.replace(/\D/g, ''))} placeholder="560001" />}
         </Field>
       </div>
-      {!/^\d{6}$/.test(pin) && <p className="text-xs text-steel-500 mt-2">Capacity is per PIN code; without one, bookings across all PIN codes are counted.</p>}
+      {!/^\d{5,6}$/.test(pin) && <p className="text-xs text-steel-500 mt-2">Capacity is per PIN code; without one, bookings across all PIN codes are counted.</p>}
       <div className="mt-4">
         {res.error && !d ? (
           <p className="text-sm text-danger-600" role="alert">{res.error.message}</p>

@@ -28,6 +28,10 @@ function fromNominatim(r) {
     city: a.city || a.town || a.city_district || a.county || '',
     state: a.state || '',
     pinCode: (a.postcode || '').replace(/\s/g, ''),
+
+
+    country: (a.country_code || '').toUpperCase(),
+    district: a.state_district || a.county || '',
   };
 }
 
@@ -43,6 +47,9 @@ function fromGoogle(r) {
     city: get('locality') || get('administrative_area_level_2'),
     state: get('administrative_area_level_1'),
     pinCode: get('postal_code'),
+
+     country: r.address_components?.find((c) => c.types.includes('country'))?.short_name || '',
+     district: get('administrative_area_level_2'),
   };
 }
 
@@ -52,11 +59,11 @@ async function search(q) {
   return cached(`s:${query.toLowerCase()}`, async () => {
     try {
       if (process.env.MAPS_API_KEY) {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?region=in&address=${encodeURIComponent(query)}&key=${process.env.MAPS_API_KEY}`;
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?components=country:IN%7Ccountry:NP&address=${encodeURIComponent(query)}&key=${process.env.MAPS_API_KEY}`;
         const data = await (await fetch(url)).json();
         return (data.results || []).slice(0, 5).map(fromGoogle);
       }
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=in&limit=5&q=${encodeURIComponent(query)}`;
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=in,np&limit=5&q=${encodeURIComponent(query)}`;
       const res = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'en' } });
       if (!res.ok) throw new Error(`Nominatim ${res.status}`);
       return (await res.json()).map(fromNominatim);

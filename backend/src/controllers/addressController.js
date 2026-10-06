@@ -1,7 +1,7 @@
 const Address = require('../models/Address');
 const { checkPin } = require('../services/serviceabilityService');
 
-const FIELDS = ['houseNumber', 'street', 'locality', 'city', 'state', 'pinCode', 'landmark', 'addressType', 'isDefault', 'location'];
+const FIELDS = ['houseNumber', 'street', 'locality', 'city', 'state', 'pinCode', 'landmark', 'addressType', 'isDefault', 'location', 'country', 'district', 'ward'];
 const pick = (body) => Object.fromEntries(FIELDS.filter((f) => body[f] !== undefined).map((f) => [f, body[f]]));
 
 async function withServiceability(address) {

@@ -140,7 +140,7 @@ function AreaForm({ area, onClose, onSaved }) {
   const { busy, run } = useAction();
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v }));
   const tokens = useMemo(() => parsePins(f.pins), [f.pins]);
-  const invalid = tokens.filter((t) => !/^\d{6}$/.test(t));
+  const invalid = tokens.filter((t) => !/^\d{5,6}$/.test(t));
   const hasCenter = !isBlank(f.lat) && !isBlank(f.lng);
 
   async function save(e) {
@@ -206,7 +206,7 @@ function AreaForm({ area, onClose, onSaved }) {
           {tokens.length > 0 && (
             <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto" aria-label="PIN code preview">
               {tokens.slice(0, 200).map((t) => (
-                <Badge key={t} tone={/^\d{6}$/.test(t) ? 'steel' : 'danger'} className="tabular">
+                <Badge key={t} tone={/^\d{6,6}$/.test(t) ? 'steel' : 'danger'} className="tabular">
                   {t}
                 </Badge>
               ))}
